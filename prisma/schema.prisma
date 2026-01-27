@@ -4,7 +4,14 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  // OVDE NE SME BITI NIŠTA DRUGO
+  url      = "mysql://root:@localhost:3306/budzetko"
 }
 
-// ... ovde idu tvoji modeli (User, Transaction, itd.)
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("USER") 
+  createdAt DateTime @default(now())
+}
