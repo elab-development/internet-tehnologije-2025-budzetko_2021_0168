@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // Putanja do fajla koji smo malopre napravili
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcrypt"; 
 
 export async function POST(request: Request) {
   try {
-    // 1. Preuzimamo podatke koje si poslala iz forme
     const body = await request.json();
     const { name, email, password } = body;
 
-    // 2. Provera da li su sva polja popunjena
+    // Provera obaveznih polja
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "Sva polja su obavezna!" },
@@ -15,27 +15,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Upisujemo korisnika u MySQL bazu preko Prisme
+    // Pretvaramo lozinku u nečitljiv heš
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Upisujemo korisnika, ali sa KRIPTOVANOM lozinkom
     const newUser = await prisma.user.create({
       data: {
         name: name,
         email: email,
-        password: password, // Napomena: U sledećoj fazi ćemo ovo hešovati (bcrypt)
+        password: hashedPassword,
         role: "USER",
       },
     });
 
-    // 4. Ako je sve prošlo ok, šaljemo podatke nazad frontendu
     return NextResponse.json(
-      { message: "Korisnik uspešno kreiran!", user: newUser },
+      { message: "Korisnik uspešno kreiran!", user: { name: newUser.name, email: newUser.email } },
       { status: 201 }
     );
 
   } catch (error: any) {
-    // 5. Ako se desi greška (npr. isti email), ispisujemo je u terminalu
     console.error("PRISMA ERROR:", error);
 
-    // Ako korisnik već postoji (P2002 je Prisma kod za "unique constraint")
     if (error.code === 'P2002') {
       return NextResponse.json(
         { error: "Korisnik sa ovim emailom već postoji." },
