@@ -1,0 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  // OVDE NE SME BITI NIŠTA DRUGO
+}
+
+// ... ovde idu tvoji modeli (User, Transaction, itd.)
