@@ -50,3 +50,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Greška pri čitanju troškova" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: "ID troška je obavezan" }, { status: 400 });
+    }
+
+    await prisma.expense.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
+
+    return NextResponse.json({ message: "Trošak obrisan" });
+  } catch (error) {
+    return NextResponse.json({ error: "Greška pri brisanju" }, { status: 500 });
+  }
+}
