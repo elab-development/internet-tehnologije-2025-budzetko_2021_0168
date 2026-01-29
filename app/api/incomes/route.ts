@@ -9,19 +9,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "UserId is required" }, { status: 400 });
   }
 
-  const expenses = await prisma.expense.findMany({
+  const incomes = await prisma.income.findMany({
     where: { userId: parseInt(userId) },
-    include: { category: true },
+    include: { category: true }, // Ovo nam treba da bismo videli ime kategorije
     orderBy: { createdAt: 'desc' }
   });
-  return NextResponse.json(expenses);
+  return NextResponse.json(incomes);
 }
 
 export async function POST(req: Request) {
   try {
     const { description, amount, userId, categoryId } = await req.json();
 
-    const newExpense = await prisma.expense.create({
+    const newIncome = await prisma.income.create({
       data: {
         description,
         amount: parseFloat(amount),
@@ -30,10 +30,10 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json(newExpense, { status: 201 });
+    return NextResponse.json(newIncome, { status: 201 });
   } catch (error) {
-    console.error("EXPENSE POST ERROR:", error);
-    return NextResponse.json({ error: "Greška pri čuvanju troška" }, { status: 500 });
+    console.error("INCOME POST ERROR:", error);
+    return NextResponse.json({ error: "Greška pri čuvanju prihoda" }, { status: 500 });
   }
 }
 
@@ -43,7 +43,7 @@ export async function DELETE(req: Request) {
 
   if (!id) return NextResponse.json({ error: "ID is required" }, { status: 400 });
 
-  await prisma.expense.delete({
+  await prisma.income.delete({
     where: { id: parseInt(id) }
   });
 

@@ -4,27 +4,71 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@localhost:3306/budzetko"
+  url      = env("DATABASE_URL")
 }
 
+// 1. KORISNICI
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String
-  role      String   @default("USER")
-  createdAt DateTime @default(now())
-
-  expenses Expense[]
+  id          Int          @id @default(autoincrement())
+  email       String       @unique
+  name        String?
+  password    String
+  role        String       @default("user") // "user", "admin", "guest"
+  createdAt   DateTime     @default(now())
+  
+  // Suprotne strane relacija 
+  expenses    Expense[]
+  incomes     Income[]
+  savingGoals SavingGoal[] 
 }
 
+// 2. KATEGORIJE
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  type      String    // "INCOME" ili "EXPENSE"
+  icon      String?   
+  
+  expenses  Expense[]
+  incomes   Income[]
+}
+
+// 3. TROŠKOVI
 model Expense {
   id          Int      @id @default(autoincrement())
   description String
   amount      Float
-  category    String   @default("Opšte")
   createdAt   DateTime @default(now())
+  
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+}
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
+// 4. PRIHODI
+model Income {
+  id          Int      @id @default(autoincrement())
+  description String
+  amount      Float
+  createdAt   DateTime @default(now())
+  
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+}
+
+// 5. CILJEVI ŠTEDNJE
+model SavingGoal {
+  id            Int      @id @default(autoincrement())
+  title         String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  deadline      DateTime?
+  
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
 }

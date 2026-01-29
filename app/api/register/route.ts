@@ -1,52 +1,37 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt"; 
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs"; 
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { name, email, password } = body;
+    const { email, password, name } = await req.json();
 
-    // Provera obaveznih polja
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "Sva polja su obavezna!" },
-        { status: 400 }
-      );
+    // Provera da li korisnik već postoji
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json({ error: "Email je već u upotrebi" }, { status: 400 });
     }
 
-    // Pretvaramo lozinku u nečitljiv heš
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // HEŠOVANJE
+    // '10' je broj krugova enkripcije
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Upisujemo korisnika, ali sa KRIPTOVANOM lozinkom
+    // 3. Upis u bazu sa hešovanom lozinkom
     const newUser = await prisma.user.create({
       data: {
-        name: name,
-        email: email,
-        password: hashedPassword,
-        role: "USER",
+        email,
+        name,
+        password: hashedPassword, // Čuvamo heš, ne običnu lozinku
+        role: "USER", // Podrazumevana uloga
       },
     });
 
-    return NextResponse.json(
-      { message: "Korisnik uspešno kreiran!", user: { name: newUser.name, email: newUser.email } },
-      { status: 201 }
-    );
-
-  } catch (error: any) {
-    console.error("PRISMA ERROR:", error);
-
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: "Korisnik sa ovim emailom već postoji." },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Greška pri povezivanju sa bazom podataka." },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Uspešna registracija", userId: newUser.id }, { status: 201 });
+  } catch (error) {
+    console.error("REGISTRATION ERROR:", error);
+    return NextResponse.json({ error: "Greška na serveru" }, { status: 500 });
   }
 }

@@ -1,84 +1,96 @@
 'use client';
+
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "../components/button";
-import { Input } from "../components/input";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     try {
-      // Šaljemo podatke na API 
-      const response = await fetch('/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      // Proveravamo da li je server odobrio pristup
-      if (response.ok) {
-            localStorage.setItem('userName', data.user.name);
-            localStorage.setItem('userId', data.user.id);
-            alert(`Uspešna prijava! Dobrodošli nazad, ${data.user.name}`);
-            window.location.href = '/dashboard';
-        }else {
-        // Ako su podaci pogresni, ispisujemo grešku koju nam je poslao backend
-        alert(data.error || "Pogrešan email ili lozinka!");
+      if (res.ok) {
+        localStorage.setItem('userId', data.user.id.toString());
+        localStorage.setItem('userName', data.user.name || 'Korisnik');
+        localStorage.setItem('userRole', data.user.role); 
+        router.push('/dashboard');
+      } else {
+        setError(data.error || 'Pogrešan email ili lozinka');
       }
-
-    } catch (error) {
-      console.error("Greška pri prijavi:", error);
-      alert("Serverska greška. Proverite da li je baza upaljena.");
+    } catch (err) {
+      setError('Greška u konekciji sa serverom');
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 text-black p-4">
-      {/* Kartica za Login */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-blue-100">
-        <h1 className="text-3xl font-bold mb-2 text-center text-blue-900">Prijava 🔑</h1>
-        <p className="text-gray-500 text-center mb-8">Unesite podatke da biste nastavili</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans text-black">
+      <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-md border border-gray-100">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-black text-blue-900 italic tracking-tighter">Budžetko 💰</h1>
+          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-2">Prijavi se na svoj nalog</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 p-4 rounded-2xl mb-6 text-sm font-bold border border-red-100 text-center">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <Input 
-            label="Email adresa" 
-            type="email" 
-            placeholder="ime@primer.com" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          
-          <Input 
-            label="Lozinka" 
-            type="password" 
-            placeholder="••••••••" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div>
+            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Email Adresa</label>
+            <input 
+              type="email"
+              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold transition-all text-black"
+              placeholder="primer@mail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-          <Button variant="success" className="w-full text-lg mt-4" type="submit">
-            Prijavi se
+          <div>
+            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Lozinka</label>
+            <input 
+              type="password"
+              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold transition-all text-black"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <Button type="submit" className="w-full py-4 mt-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-100 transition-all">
+            PRISTUPI PANELU
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm">
-          <span className="text-gray-600">Nemaš nalog? </span>
-          <a href="/register" className="text-blue-600 hover:underline font-bold">
+        {/* povratak na registraciju */}
+        <p className="text-center mt-8 text-sm font-bold text-gray-400">
+          Nemaš nalog?{' '}
+          <span 
+            onClick={() => router.push('/register')} 
+            className="text-blue-600 cursor-pointer hover:underline"
+          >
             Registruj se
-          </a>
-        </div>
+          </span>
+        </p>
       </div>
-
-      {/* Dugme za povratak na početnu */}
-      <a href="/" className="mt-8 text-blue-900 font-medium hover:text-blue-700 transition-colors">
-        ← Nazad na početnu
-      </a>
     </div>
   );
-  
 }
