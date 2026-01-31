@@ -11,6 +11,14 @@ export async function POST(req: Request) {
       where: { email: email },
     });
 
+    if (!email || !password || !name) {
+      return NextResponse.json({ error: "Sva polja su obavezna" }, { status: 400 });
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Lozinka mora imati najmanje 6 karaktera" }, { status: 400 });
+    }
+
     if (existingUser) {
       return NextResponse.json({ error: "Email je već u upotrebi" }, { status: 400 });
     }
@@ -29,7 +37,15 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ message: "Uspešna registracija", userId: newUser.id }, { status: 201 });
+    return NextResponse.json({ 
+      message: "Uspešna registracija", 
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role
+      } 
+    }, { status: 201 });
   } catch (error) {
     console.error("REGISTRATION ERROR:", error);
     return NextResponse.json({ error: "Greška na serveru" }, { status: 500 });

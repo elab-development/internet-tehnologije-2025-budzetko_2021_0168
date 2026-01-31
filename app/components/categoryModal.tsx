@@ -1,69 +1,104 @@
 'use client';
-import { useState } from 'react';
 
-interface CategoryModalProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, type: 'EXPENSE' | 'INCOME') => void;
+  onSave: (e: React.FormEvent) => void;
+  newCategory: { name: string; type: 'INCOME' | 'EXPENSE' } | undefined | null;
+  setNewCategory: (data: any) => void;
 }
 
-// VAŽNO: Ova linija "export function" mora da postoji!
-export function CategoryModal({ isOpen, onClose, onSave }: CategoryModalProps) {
-  const [name, setName] = useState('');
-  const [type, setType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
+export function CategoryModal({ isOpen, onClose, onSave, newCategory, setNewCategory }: Props) {
+  // 1. GLAVNA ZAŠTITA: Ako modal nije otvoren ILI podaci nisu spremni, ne crtaj ništa.
+  // Ovo sprečava "reading properties of undefined" grešku.
+  if (!isOpen || !newCategory) return null;
 
-  if (!isOpen) return null;
+  const inputClass = `
+    w-full bg-slate-950 border border-slate-800 
+    text-slate-100 text-sm px-5 py-4 rounded-2xl 
+    focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 
+    transition-all placeholder:text-slate-600
+    [&:-webkit-autofill]:shadow-[0_0_0_1000px_#020617_inset] 
+    [&:-webkit-autofill]:-webkit-text-fill-color-white
+  `;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 text-black">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
-        <h2 className="text-2xl font-black mb-6 italic text-purple-900 uppercase tracking-tighter">Nova Kategorija</h2>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Overlay sa zamućenjem */}
+      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={onClose} />
+      
+      {/* Modal Card */}
+      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Naziv kategorije</label>
-            <input 
-              type="text" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-purple-500 outline-none transition"
-              placeholder="npr. Teretana, Putovanja..."
-            />
+        {/* 2. DODATNA ZAŠTITA: Koristimo ?. operator za svaki slučaj */}
+        <div className={`h-2 w-full transition-colors duration-300 ${newCategory?.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+        
+        <div className="p-8">
+          <div className="mb-8 text-center">
+            <h2 className="text-xl font-black text-slate-100 italic uppercase tracking-tighter">
+              Nova Kategorija
+            </h2>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Tip</label>
-            <select 
-              value={type}
-              onChange={(e) => setType(e.target.value as 'EXPENSE' | 'INCOME')}
-              className="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-purple-500 outline-none transition"
-            >
-              <option value="EXPENSE">Trošak (Expense)</option>
-              <option value="INCOME">Prihod (Income)</option>
-            </select>
-          </div>
+          <form onSubmit={onSave} className="space-y-6">
+            {/* Naziv */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Naziv</label>
+              <input 
+                className={inputClass}
+                placeholder="npr. Hrana, Teretana..."
+                value={newCategory?.name || ""}
+                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                required
+              />
+            </div>
 
-          <div className="flex gap-3 mt-8">
-            <button 
-              type="button"
-              onClick={onClose} 
-              className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition"
-            >
-              Otkaži
-            </button>
-            <button 
-              type="button"
-              onClick={() => { 
-                if(!name) return alert("Unesite ime!");
-                onSave(name, type); 
-                setName(''); 
-                onClose(); 
-              }}
-              className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition"
-            >
-              Sačuvaj
-            </button>
-          </div>
+            {/* Tip Kategorije */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Tip Kategorije</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewCategory({...newCategory, type: 'INCOME'})}
+                  className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                    newCategory?.type === 'INCOME' 
+                    ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
+                    : 'bg-slate-950 border-slate-800 text-slate-500'
+                  }`}
+                >
+                  Prihod
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewCategory({...newCategory, type: 'EXPENSE'})}
+                  className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                    newCategory?.type === 'EXPENSE' 
+                    ? 'bg-rose-500/10 border-rose-500/50 text-rose-400' 
+                    : 'bg-slate-950 border-slate-800 text-slate-500'
+                  }`}
+                >
+                  Trošak
+                </button>
+              </div>
+            </div>
+
+            {/* Dugmad */}
+            <div className="flex gap-3 pt-2">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-3.5 rounded-xl transition-all text-[10px] uppercase tracking-widest"
+              >
+                Nazad
+              </button>
+              <button 
+                type="submit" 
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-slate-950 font-black py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-[10px] uppercase tracking-widest"
+              >
+                Sačuvaj
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

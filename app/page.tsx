@@ -1,6 +1,12 @@
 // app/page.tsx
 import { Button } from "./components/button";
 
+//if (user.role === 'ADMIN') {
+ //  return <AdminView /> // Admin vidi sve korisnike i globalnu statistiku
+//} else {
+ //  return <UserView />  // Običan korisnik vidi samo svoje troškove
+//}
+
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50">
