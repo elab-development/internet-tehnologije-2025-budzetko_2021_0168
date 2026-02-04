@@ -53,7 +53,6 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
                 placeholder="npr. Plata, Namirnice, Bonus..."
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                required
               />
             </div>
 

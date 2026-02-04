@@ -7,68 +7,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. KORISNICI
-model User {
-  id          Int          @id @default(autoincrement())
-  email       String       @unique
-  name        String?
-  password    String
-  role        String       @default("user") // "user", "admin", "guest"
-  createdAt   DateTime     @default(now())
-  
-  // Suprotne strane relacija 
-  expenses    Expense[]
-  incomes     Income[]
-  savingGoals SavingGoal[] 
+// DEFINICIJA TIPOVA
+enum Role {
+  USER
+  ADMIN
+  GUEST
 }
 
-// 2. KATEGORIJE
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// KORISNIK
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  name      String?
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+
+  // Relacije
+  expenses   Expense[]
+  incomes    Income[]
+  categories Category[]
+}
+
+// KATEGORIJA (Sada vezana za korisnika)
 model Category {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  type      String    // "INCOME" ili "EXPENSE"
-  icon      String?   
+  id        Int             @id @default(autoincrement())
+  name      String
+  type      TransactionType
   
+  // Ako je userId NULL, kategorija je "sistemska" (svi je vide)
+  // Ako ima ID, vidi je samo taj korisnik
+  userId    Int?
+  user      User?           @relation(fields: [userId], references: [id])
+
   expenses  Expense[]
   incomes   Income[]
 }
 
-// 3. TROŠKOVI
+// TROŠAK
 model Expense {
   id          Int      @id @default(autoincrement())
-  description String
   amount      Float
+  description String?
   createdAt   DateTime @default(now())
-  
+
   userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user        User     @relation(fields: [userId], references: [id])
+
   categoryId  Int
   category    Category @relation(fields: [categoryId], references: [id])
 }
 
-// 4. PRIHODI
+// PRIHOD
 model Income {
   id          Int      @id @default(autoincrement())
-  description String
   amount      Float
+  description String?
   createdAt   DateTime @default(now())
-  
+
   userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user        User     @relation(fields: [userId], references: [id])
+
   categoryId  Int
   category    Category @relation(fields: [categoryId], references: [id])
-}
-
-// 5. CILJEVI ŠTEDNJE
-model SavingGoal {
-  id            Int      @id @default(autoincrement())
-  title         String
-  targetAmount  Float
-  currentAmount Float    @default(0)
-  deadline      DateTime?
-  
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
 }
