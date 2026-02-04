@@ -2,7 +2,8 @@
 
 interface Props {
   transactions: any[];
-  onDelete: (id: string, type: 'INCOME' | 'EXPENSE') => void;
+  // Dodat upitnik (?) jer onDelete može biti undefined za GUEST korisnike
+  onDelete?: (id: string, type: 'INCOME' | 'EXPENSE') => void;
 }
 
 export function TransactionTable({ transactions, onDelete }: Props) {
@@ -29,7 +30,6 @@ export function TransactionTable({ transactions, onDelete }: Props) {
       {/* Lista transakcija */}
       {transactions.map((t) => (
         <div 
-          // IZMENA: Kombinovani ključ sprečava "Duplicate Key" error
           key={`${t.type}-${t.id}`} 
           className="grid grid-cols-4 items-center bg-slate-950/40 border border-slate-800/50 p-5 rounded-2xl hover:border-blue-500/30 hover:bg-slate-900/60 transition-all duration-300 group"
         >
@@ -66,13 +66,17 @@ export function TransactionTable({ transactions, onDelete }: Props) {
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
               {new Date(t.createdAt).toLocaleDateString('sr-RS', { day: '2-digit', month: 'short' })}
             </span>
-            <button 
-              onClick={() => onDelete(t.id, t.type)}
-              className="text-slate-700 hover:text-rose-500 hover:scale-125 opacity-0 group-hover:opacity-100 transition-all p-1"
-              title="Obriši transakciju"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-            </button>
+            
+            {/* FIKS: Kanta se renderuje SAMO ako onDelete funkcija postoji */}
+            {onDelete && (
+              <button 
+                onClick={() => onDelete(t.id, t.type)}
+                className="text-slate-700 hover:text-rose-500 hover:scale-125 opacity-0 group-hover:opacity-100 transition-all p-1"
+                title="Obriši transakciju"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              </button>
+            )}
           </div>
         </div>
       ))}
