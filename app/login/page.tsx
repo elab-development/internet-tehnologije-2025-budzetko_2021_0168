@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Dodali smo Link komponentu
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // State za oko
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function LoginPage() {
             <div className="flex items-center justify-center gap-2 mb-4">
                <div className="h-6 w-[2px] bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
                <h1 className="text-2xl font-black text-slate-100 tracking-[-0.05em] uppercase italic">
-                  Budžet<span className="text-blue-500 not-italic font-light">ko</span>
+                 Budžet<span className="text-blue-500 not-italic font-light">ko</span>
                </h1>
             </div>
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Dobrodošli nazad!</p>
@@ -124,7 +125,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+          <div className="mt-8 pt-6 border-t border-slate-800 text-center space-y-4">
             <p className="text-xs text-slate-500 font-bold">
               Nemaš nalog?{' '}
               <span 
@@ -134,6 +135,13 @@ export default function LoginPage() {
                 Registruj se
               </span>
             </p>
+            
+            {/* NOVI DEO: Povratak na početnu */}
+            <div>
+              <Link href="/" className="text-[10px] font-bold text-slate-600 hover:text-slate-400 uppercase tracking-wider transition">
+                ← Nazad na početnu
+              </Link>
+            </div>
           </div>
         </div>
       </div>

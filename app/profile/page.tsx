@@ -7,6 +7,9 @@ import { Navbar } from "../components/navbar";
 export default function ProfilePage() {
   const router = useRouter();
   
+  // State za kontrolu pristupa
+  const [loading, setLoading] = useState(true);
+  
   // State za osnovne podatke
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -15,20 +18,29 @@ export default function ProfilePage() {
   // State za šifru i vidljivost
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Stanje za oko
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
   useEffect(() => {
-    setName(localStorage.getItem('userName') || '');
-    setEmail(localStorage.getItem('userEmail') || 'korisnik@primer.com');
-    setRole(localStorage.getItem('userRole') || 'USER');
-  }, []);
+    const userId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+
+    // --- ZAŠTITA: Ako nema ID-a ili je uloga GUEST, šalji na login ---
+    if (!userId || userRole === 'GUEST') {
+      router.push('/login');
+    } else {
+      // Ako je pravi korisnik (User/Admin), učitaj podatke
+      setName(localStorage.getItem('userName') || '');
+      setEmail(localStorage.getItem('userEmail') || 'korisnik@primer.com');
+      setRole(userRole || 'USER');
+      setLoading(false); // Dozvoli prikaz stranice
+    }
+  }, [router]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage({ text: 'Slanje podataka...', type: 'info' });
 
-    // Osnovna provera lozinke na frontendu
     if (newPassword && newPassword !== confirmPassword) {
         setMessage({ text: 'Šifre se ne poklapaju!', type: 'error' });
         return;
@@ -36,34 +48,35 @@ export default function ProfilePage() {
 
     try {
         const response = await fetch('/api/user/update', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            email: email, // Email koristimo kao ključ za bazu
-            name: name,
-            newPassword: newPassword || undefined,
-        }),
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              email: email,
+              name: name,
+              newPassword: newPassword || undefined,
+          }),
         });
 
         const result = await response.json();
 
         if (response.ok) {
-        // Ako je uspelo, ažuriramo lokalne podatke
-        localStorage.setItem('userName', name);
-        setMessage({ text: 'Podaci su trajno sačuvani u bazi!', type: 'success' });
-        
-        setNewPassword('');
-        setConfirmPassword('');
-        
-        // Opciono: vrati korisnika na dashboard posle 2 sekunde
-        setTimeout(() => router.push('/dashboard'), 2000);
+          localStorage.setItem('userName', name);
+          setMessage({ text: 'Podaci su trajno sačuvani u bazi!', type: 'success' });
+          setNewPassword('');
+          setConfirmPassword('');
+          setTimeout(() => router.push('/dashboard'), 2000);
         } else {
-        setMessage({ text: result.message || 'Došlo je do greške', type: 'error' });
+          setMessage({ text: result.message || 'Došlo je do greške', type: 'error' });
         }
     } catch (error) {
         setMessage({ text: 'Serverska greška. Proverite bazu.', type: 'error' });
     }
- };
+  };
+
+  // Dok sistem proverava da li je korisnik Gost, prikazujemo samo tamnu pozadinu
+  if (loading) {
+    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-500 font-black animate-pulse uppercase italic tracking-widest">Provera pristupa...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -80,14 +93,15 @@ export default function ProfilePage() {
 
           {message.text && (
             <div className={`mb-8 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center animate-in fade-in zoom-in-95 ${
-              message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+              message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+              message.type === 'info' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+              'bg-rose-500/10 text-rose-400 border border-rose-500/20'
             }`}>
               {message.text}
             </div>
           )}
           
           <form onSubmit={handleUpdateProfile} className="space-y-8">
-            {/* SEKCIJA: OSNOVNO */}
             <div className="space-y-4">
                <h2 className="text-[11px] font-black text-blue-500 uppercase tracking-[0.2em] border-b border-slate-800 pb-2">Osnovni podaci</h2>
                <div className="grid grid-cols-1 gap-4">
@@ -112,7 +126,6 @@ export default function ProfilePage() {
                </div>
             </div>
 
-            {/* SEKCIJA: ŠIFRA SA OKOM */}
             <div className="space-y-4 pt-4">
                <div className="flex justify-between items-end border-b border-slate-800 pb-2">
                   <h2 className="text-[11px] font-black text-rose-500 uppercase tracking-[0.2em]">Promena šifre</h2>
@@ -122,11 +135,6 @@ export default function ProfilePage() {
                     className="text-[9px] font-bold text-slate-500 hover:text-blue-400 transition-colors uppercase tracking-widest flex items-center gap-2"
                   >
                     {showPassword ? 'Sakrij' : 'Prikaži'} šifru
-                    {showPassword ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    )}
                   </button>
                </div>
 

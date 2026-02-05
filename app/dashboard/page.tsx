@@ -10,6 +10,22 @@ import { CategoryModal } from "../components/categoryModal";
 import { BudgetCharts } from "../components/charts";
 import { QuickActions } from "../components/quickActions"; 
 
+// --- LAŽNI PODACI ZA GOSTA (Frontend samo) ---
+const DEMO_DATA = {
+  expenses: [
+    { id: 'd1', description: 'Primer: Stanarina', amount: 35000, createdAt: new Date().toISOString(), category: { name: 'Stanovanje' }, type: 'EXPENSE' },
+    { id: 'd2', description: 'Primer: Namirnice', amount: 4500, createdAt: new Date().toISOString(), category: { name: 'Hrana' }, type: 'EXPENSE' }
+  ],
+  incomes: [
+    { id: 'i1', description: 'Primer: Plata', amount: 95000, createdAt: new Date().toISOString(), category: { name: 'Posao' }, type: 'INCOME' }
+  ],
+  categories: [
+    { id: 'c1', name: 'Hrana', type: 'EXPENSE' },
+    { id: 'c2', name: 'Stanovanje', type: 'EXPENSE' },
+    { id: 'c3', name: 'Posao', type: 'INCOME' }
+  ]
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -39,8 +55,16 @@ export default function DashboardPage() {
     const storedRole = localStorage.getItem('userRole'); 
     
     if (!userId) {
-      router.push('/login');
+      // GOST REŽIM - Ne šalje ništa bazi
+      setCurrentUserId(null);
+      setUserName('Gost');
+      setUserRole('GUEST'); 
+      setExpenses(DEMO_DATA.expenses);
+      setIncomes(DEMO_DATA.incomes);
+      setCategories(DEMO_DATA.categories);
+      setLoading(false);
     } else {
+      // REGISTROVAN KORISNIK - Čitamo iz baze
       setCurrentUserId(userId);
       setUserName(storedName || 'Korisnik');
       setUserRole(storedRole || 'USER');
@@ -68,6 +92,7 @@ export default function DashboardPage() {
   };
 
   const updateUserRole = async (userId: number, newRole: string) => {
+    // Ovde sada dolaze samo 'USER' ili 'ADMIN'
     const res = await fetch('/api/user', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -108,14 +133,33 @@ export default function DashboardPage() {
     }
   };
 
-  const deleteCategory = async (id: string) => {
+const deleteCategory = async (id: string) => {
+    // 1. Provera uloge (Gost ne može da briše)
     if (userRole === 'GUEST') return;
-    if (!confirm("Obrisati kategoriju?")) return;
+
+    // 2. Potvrda od strane korisnika
+    if (!confirm("Da li ste sigurni? Brisanje kategorije nije moguće ako u njoj postoje troškovi ili prihodi.")) return;
+
     const userId = localStorage.getItem('userId');
-    const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      const resCat = await fetch(`/api/categories?userId=${userId}`);
-      if (resCat.ok) setCategories(await resCat.json());
+    
+    try {
+      // 3. Slanje DELETE zahteva
+      const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+      
+      // 4. Preuzimanje odgovora sa servera (bilo da je uspeh ili greška)
+      const data = await res.json();
+
+      if (res.ok) {
+        // Ako je brisanje uspelo, osveži listu kategorija
+        const resCat = await fetch(`/api/categories?userId=${userId}`);
+        if (resCat.ok) setCategories(await resCat.json());
+      } else {
+        // 5. OVDE JE REŠENJE: Prikazujemo poruku koju je poslao API (npr. greška P2003)
+        alert(data.error || "Došlo je do greške pri brisanju.");
+      }
+    } catch (err) {
+      console.error("Greška:", err);
+      alert("Serverska greška. Proverite internet konekciju.");
     }
   };
 
@@ -203,8 +247,15 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {['USER', 'GUEST', 'ADMIN'].map((r) => (
-                      <button key={r} onClick={() => updateUserRole(u.id, r)} className={`flex-1 text-[9px] font-black py-3 rounded-xl transition-all duration-300 ${u.role === r ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-slate-300'}`}>{r}</button>
+                    {/* FIKS: Samo USER i ADMIN opcije ovde */}
+                    {['USER', 'ADMIN'].map((r) => (
+                      <button 
+                        key={r} 
+                        onClick={() => updateUserRole(u.id, r)} 
+                        className={`flex-1 text-[9px] font-black py-3 rounded-xl transition-all duration-300 ${u.role === r ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-slate-300'}`}
+                      >
+                        {r}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -231,7 +282,6 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="p-6">
-            {/* OVDE JE FIKS: onDelete se šalje samo ako NIJE GUEST */}
             <TransactionTable 
                 transactions={filteredTransactions} 
                 onDelete={userRole !== 'GUEST' ? (id, type) => setDeleteConfirm({ id, type }) : undefined} 
@@ -262,6 +312,7 @@ export default function DashboardPage() {
         </section>
       </main>
 
+      {/* MODALI I AKCIJE */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
           <div className="bg-slate-900 border border-slate-800 p-12 rounded-[3rem] max-w-sm w-full text-center">
