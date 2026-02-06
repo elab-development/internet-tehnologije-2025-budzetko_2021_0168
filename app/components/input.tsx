@@ -1,16 +1,26 @@
-// components/input.tsx
+// components/Input.tsx
 import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
 }
 
-export const Input = ({ label, ...props }: InputProps) => {
+export const Input = ({ label, className, ...props }: InputProps) => {
   return (
-    <div className="flex flex-col gap-1 mb-4 w-full">
-      <label className="text-sm font-semibold text-gray-700">{label}</label>
+    <div className="w-full space-y-2 group">
+      {label && (
+        <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 group-focus-within:text-violet-400 transition-colors ml-2">
+          {label}
+        </label>
+      )}
       <input 
-        className="border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-black placeholder:text-gray-500"
+        className={`
+          w-full bg-slate-950/50 border border-slate-800/80 text-sm px-6 py-4 rounded-2xl 
+          text-slate-100 placeholder:text-slate-700 outline-none transition-all duration-300
+          focus:border-violet-500/50 focus:bg-slate-900/50 focus:ring-4 focus:ring-violet-500/5
+          shadow-inner
+          ${className}
+        `}
         {...props}
       />
     </div>

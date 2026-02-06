@@ -11,7 +11,7 @@ export async function GET(req: Request) {
 
   const incomes = await prisma.income.findMany({
     where: { userId: parseInt(userId) },
-    include: { category: true }, // Ovo nam treba da bismo videli ime kategorije
+    include: { category: true }, // da bismo videli ime kategorije
     orderBy: { createdAt: 'desc' }
   });
   return NextResponse.json(incomes);

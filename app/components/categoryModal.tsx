@@ -9,8 +9,7 @@ interface Props {
 }
 
 export function CategoryModal({ isOpen, onClose, onSave, newCategory, setNewCategory }: Props) {
-  // 1. GLAVNA ZAŠTITA: Ako modal nije otvoren ILI podaci nisu spremni, ne crtaj ništa.
-  // Ovo sprečava "reading properties of undefined" grešku.
+
   if (!isOpen || !newCategory) return null;
 
   const inputClass = `
@@ -29,8 +28,7 @@ export function CategoryModal({ isOpen, onClose, onSave, newCategory, setNewCate
       
       {/* Modal Card */}
       <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        
-        {/* 2. DODATNA ZAŠTITA: Koristimo ?. operator za svaki slučaj */}
+
         <div className={`h-2 w-full transition-colors duration-300 ${newCategory?.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
         
         <div className="p-8">
@@ -93,7 +91,7 @@ export function CategoryModal({ isOpen, onClose, onSave, newCategory, setNewCate
               </button>
               <button 
                 type="submit" 
-                className="flex-1 bg-blue-600 hover:bg-blue-500 text-slate-950 font-black py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-[10px] uppercase tracking-widest"
+                className="flex-1 py-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-[0_0_25px_rgba(16,185,129,0.3)]"
               >
                 Sačuvaj
               </button>

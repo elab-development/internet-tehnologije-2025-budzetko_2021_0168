@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Dodali smo Link komponentu
+import Link from 'next/link'; 
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -43,47 +43,49 @@ export default function LoginPage() {
     }
   };
 
+ 
   const inputClass = `
     w-full bg-slate-950 border border-slate-800 
-    text-slate-100 text-sm px-5 py-4 rounded-2xl 
-    focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 
-    transition-all 
-    placeholder:text-slate-500 
-    caret-blue-500
+    text-white text-sm px-5 py-4 rounded-xl
+    focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 
+    transition-all duration-200
+    placeholder:text-slate-600 
+    caret-violet-400
     [&:-webkit-autofill]:shadow-[0_0_0_1000px_#020617_inset] 
     [&:-webkit-autofill]:-webkit-text-fill-color-white
   `;
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#02040a] flex items-center justify-center p-6 relative overflow-hidden">
       
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-10 rounded-[2.5rem] shadow-2xl">
+        <div className="bg-slate-900/90 border border-slate-800 p-10 rounded-3xl shadow-2xl">
           
           <div className="text-center mb-10">
-            <div className="flex items-center justify-center gap-2 mb-4">
-               <div className="h-6 w-[2px] bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
-               <h1 className="text-2xl font-black text-slate-100 tracking-[-0.05em] uppercase italic">
-                 Budžet<span className="text-blue-500 not-italic font-light">ko</span>
+            <div className="flex items-center justify-center gap-3 mb-3">
+               <div className="h-8 w-[3px] bg-violet-500 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.6)]"></div>
+               <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+                 Budžet<span className="text-violet-500 not-italic">ko</span>
                </h1>
             </div>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Dobrodošli nazad!</p>
+            <p className="text-slate-400 text-xs font-medium tracking-wide">Prijavite se na vaš nalog</p>
           </div>
 
           {error && (
-            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-2xl mb-6 text-xs font-bold text-center animate-in fade-in slide-in-from-top-2">
+            <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl mb-6 text-xs font-bold text-center">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Adresa</label>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 ml-1">Email</label>
               <input 
                 type="email"
-                placeholder="marko@mail.com"
+                placeholder="ime@primer.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -91,12 +93,12 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Lozinka</label>
-              <div className="relative group">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 ml-1">Lozinka</label>
+              <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Vaša lozinka"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -105,12 +107,12 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-blue-400 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                 >
                   {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 1.225 0 2.39.215 3.475.608M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3l18 18"/></svg>
                   )}
                 </button>
               </div>
@@ -119,29 +121,25 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-slate-950 font-black text-sm uppercase tracking-widest py-4 rounded-2xl shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full mt-2 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(124,58,237,0.3)] active:scale-95 disabled:opacity-50"
             >
-              {loading ? "PROVERA..." : "PRISTUPI PANELU"}
+              {loading ? "SAČEKAJTE..." : "PRIJAVI SE"}
             </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-slate-800 text-center space-y-4">
-            <p className="text-xs text-slate-500 font-bold">
+            <p className="text-sm text-slate-400">
               Nemaš nalog?{' '}
-              <span 
+              <button 
                 onClick={() => router.push('/register')} 
-                className="text-blue-400 cursor-pointer hover:text-blue-300 transition hover:underline underline-offset-4"
+                className="text-violet-400 font-bold hover:text-violet-300 transition"
               >
                 Registruj se
-              </span>
+              </button>
             </p>
-            
-            {/* NOVI DEO: Povratak na početnu */}
-            <div>
-              <Link href="/" className="text-[10px] font-bold text-slate-600 hover:text-slate-400 uppercase tracking-wider transition">
-                ← Nazad na početnu
-              </Link>
-            </div>
+            <Link href="/" className="block text-xs text-slate-500 hover:text-slate-300 transition tracking-tight">
+              ← Nazad na početnu
+            </Link>
           </div>
         </div>
       </div>
