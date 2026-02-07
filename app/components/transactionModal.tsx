@@ -12,7 +12,7 @@ interface Props {
 
 export function TransactionModal({ isOpen, onClose, mode, formData, setFormData, onSave, categories }: Props) {
   if (!isOpen) return null;
-
+  const isIncome = mode === 'INCOME';
   const focusStyles = isIncome 
     ? 'focus:border-emerald-500/50 focus:ring-emerald-500/20' 
     : 'focus:border-rose-500/50 focus:ring-rose-500/20';
@@ -35,7 +35,8 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
       />
       
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800/50 rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800/50 rounded-[3rem]
+       shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] overflow-hidden animate-in zoom-in-95 duration-300">
         
         <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[80px] opacity-20 ${isIncome ? 'bg-emerald-500' : 'bg-rose-500'}`} />
         
@@ -56,7 +57,8 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
                 onClick={onClose}
                 className="p-2 text-slate-600 hover:text-white transition-colors"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" 
+                strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           </header>
 

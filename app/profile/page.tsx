@@ -105,7 +105,7 @@ export default function ProfilePage() {
                <h2 className="text-[11px] font-black text-violet-400 uppercase tracking-[0.2em] border-b border-slate-800 pb-3 ml-1">Lične informacije</h2>
                <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 ml-1">Puno Ime</label>
+                    <label className="text-xs font-bold text-slate-300 ml-1">Puno ime</label>
                     <input 
                       type="text" 
                       value={name}
@@ -114,7 +114,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2 opacity-80">
-                    <label className="text-xs font-bold text-slate-500 ml-1">Email Adresa (fiksno)</label>
+                    <label className="text-xs font-bold text-slate-500 ml-1">Email adresa (nepromenljivo)</label>
                     <input 
                       type="email" 
                       value={email}

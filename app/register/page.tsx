@@ -74,7 +74,7 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-5">
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 ml-1">Ime i Prezime</label>
+              <label className="text-xs font-bold text-slate-300 ml-1">Ime i prezime</label>
               <input 
                 type="text"
                 placeholder="Marko Marković"
