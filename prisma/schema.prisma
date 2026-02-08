@@ -18,37 +18,41 @@ enum TransactionType {
   EXPENSE
 }
 
-// KORISNIK
+// 1. KORISNIK
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
   password  String
   name      String?
-  role      Role       @default(USER)
-  createdAt DateTime   @default(now())
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
 
   // Relacije
-  expenses   Expense[]
-  incomes    Income[]
-  categories Category[]
+  expenses     Expense[]
+  incomes      Income[]
+  categories   Category[]
+  budgets      Budget[]
+  savingsGoals SavingsGoal[]
 }
 
-// KATEGORIJA (Sada vezana za korisnika)
+// 2. KATEGORIJA
 model Category {
-  id        Int             @id @default(autoincrement())
-  name      String
-  type      TransactionType
+  id      Int             @id @default(autoincrement())
+  name    String
+  type    TransactionType
+  icon    String?
   
-  // Ako je userId NULL, kategorija je "sistemska" (svi je vide)
-  // Ako ima ID, vidi je samo taj korisnik
-  userId    Int?
-  user      User?           @relation(fields: [userId], references: [id])
+  userId  Int?
+  user    User?           @relation(fields: [userId], references: [id])
 
-  expenses  Expense[]
-  incomes   Income[]
+  expenses Expense[]
+  incomes  Income[]
+  budgets  Budget[] // Povezano može se postaviti budžet po kategoriji
+
+  @@unique([name, userId])
 }
 
-// TROŠAK
+// 3. TROŠAK
 model Expense {
   id          Int      @id @default(autoincrement())
   amount      Float
@@ -62,7 +66,7 @@ model Expense {
   category    Category @relation(fields: [categoryId], references: [id])
 }
 
-// PRIHOD
+// 4. PRIHOD
 model Income {
   id          Int      @id @default(autoincrement())
   amount      Float
@@ -74,4 +78,32 @@ model Income {
 
   categoryId  Int
   category    Category @relation(fields: [categoryId], references: [id])
+}
+
+// 5. BUDŽET (NOVO)
+// Služi da postaviš limit: "Neću da potrošim više od 100€ na hranu ovog meseca"
+model Budget {
+  id         Int      @id @default(autoincrement())
+  limit      Float    // Maksimalni iznos
+  month      Int      // npr. 2 za februar
+  year       Int      // npr. 2025
+
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+}
+
+// 6. CILJEVI ŠTEDNJE (NOVO)
+// Služi za planiranje: "Skupljam 1000€ za novi laptop"
+model SavingsGoal {
+  id            Int      @id @default(autoincrement())
+  name          String   // npr. "Novi Laptop"
+  targetAmount  Float    // Koliko para treba
+  currentAmount Float    @default(0) // Koliko je već skupljeno
+  deadline      DateTime?
+
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
 }
