@@ -8,7 +8,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // PRETVARANJE U BROJ: Ako ti je u bazi ID tipa Int, ovo moraš uraditi
+    // PRETVARANJE U BROJ: Ako je u bazi ID tipa Int
     const numericId = Number(id);
 
     if (isNaN(numericId)) {
@@ -21,7 +21,7 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ message: "Kategorija uspešno obrisana" });
+    return NextResponse.json({ message: "Kategorija uspešno obrisana!" });
 
   } catch (error: any) {
     console.error("Greška pri brisanju kategorije:", error);

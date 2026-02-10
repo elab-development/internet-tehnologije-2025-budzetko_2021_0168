@@ -11,14 +11,14 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Korisnik nije pronađen" }, { status: 401 });
+      return NextResponse.json({ error: "Korisnik nije pronađen!" }, { status: 401 });
     }
 
     // UPOREĐIVANJE - bcrypt zna kako da proveri heš iz baze
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      return NextResponse.json({ error: "Pogrešna lozinka" }, { status: 401 });
+      return NextResponse.json({ error: "Pogrešna lozinka!" }, { status: 401 });
     }
 
     return NextResponse.json({
@@ -29,6 +29,6 @@ export async function POST(req: Request) {
       }
     });
   } catch (error) {
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "Serverska greška!" }, { status: 500 });
   }
 }

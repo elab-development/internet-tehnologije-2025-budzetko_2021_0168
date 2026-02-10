@@ -74,7 +74,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ message: 'Uspešno!' }, { status: 200 });
 
   } catch (error: any) {
-    console.error("DETALJNA GRESKA:", error); // OVO POGLEDAJ U TERMINALU
+    console.error("DETALJNA GRESKA:", error); 
     return NextResponse.json({ message: 'Baza odbija upis', error: error.message }, { status: 500 });
   }
 }

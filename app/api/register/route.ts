@@ -12,15 +12,15 @@ export async function POST(req: Request) {
     });
 
     if (!email || !password || !name) {
-      return NextResponse.json({ error: "Sva polja su obavezna" }, { status: 400 });
+      return NextResponse.json({ error: "Sva polja su obavezna!" }, { status: 400 });
     }
 
     if (password.length < 6) {
-      return NextResponse.json({ error: "Lozinka mora imati najmanje 6 karaktera" }, { status: 400 });
+      return NextResponse.json({ error: "Lozinka mora imati najmanje 6 karaktera!" }, { status: 400 });
     }
 
     if (existingUser) {
-      return NextResponse.json({ error: "Email je već u upotrebi" }, { status: 400 });
+      return NextResponse.json({ error: "Email je već u upotrebi!" }, { status: 400 });
     }
 
     // HEŠOVANJE
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       data: {
         email,
         name,
-        password: hashedPassword, // Čuvamo heš, ne običnu lozinku
+        password: hashedPassword, // Čuva se heš, ne obična lozinka
         role: "USER", // Podrazumevana uloga
       },
     });

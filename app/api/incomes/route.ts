@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     return NextResponse.json(newIncome, { status: 201 });
   } catch (error) {
     console.error("INCOME POST ERROR:", error);
-    return NextResponse.json({ error: "Greška pri čuvanju prihoda" }, { status: 500 });
+    return NextResponse.json({ error: "Greška pri čuvanju prihoda!" }, { status: 500 });
   }
 }
 
@@ -47,5 +47,5 @@ export async function DELETE(req: Request) {
     where: { id: parseInt(id) }
   });
 
-  return NextResponse.json({ message: "Obrisano" });
+  return NextResponse.json({ message: "Obrisano!" });
 }

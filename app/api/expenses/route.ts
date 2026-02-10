@@ -47,5 +47,5 @@ export async function DELETE(req: Request) {
     where: { id: parseInt(id) }
   });
 
-  return NextResponse.json({ message: "Obrisano" });
+  return NextResponse.json({ message: "Obrisano!" });
 }

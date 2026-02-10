@@ -30,7 +30,7 @@ export default function RegisterPage() {
           localStorage.setItem('userId', data.user.id.toString());
           localStorage.setItem('userRole', data.user.role || 'USER');
         }
-        router.push('/dashboard'); 
+        router.push('/login'); 
       } else {
         alert(data.error || "Greška pri registraciji!");
       }

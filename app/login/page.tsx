@@ -34,10 +34,10 @@ export default function LoginPage() {
     
         router.push('/dashboard');
       } else {
-        setError(data.error || 'Pogrešan email ili lozinka');
+        setError(data.error || 'Pogrešan email ili lozinka!');
       }
     } catch (err) {
-      setError('Greška u konekciji sa serverom');
+      setError('Greška u konekciji sa serverom!');
     } finally {
       setLoading(false);
     }

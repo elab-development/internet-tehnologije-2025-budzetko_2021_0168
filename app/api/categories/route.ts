@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from "@/lib/prisma"; // Koristi tvoju postojeću instancu
+import { prisma } from "@/lib/prisma"; // Koristi postojeću instancu
 
-// ČITANJE KATEGORIJA (Samo moje + sistemske + Auto-seed)
+// ČITANJE KATEGORIJA (nase + sistemske + Auto-seed)
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 
-    // 1. AUTO-SEED: Provera i dodavanje osnovnih kategorija ako ih nema
+    // AUTO-SEED: Provera i dodavanje osnovnih kategorija ako ih nema
     const defaultCategories = [
       { name: 'Hrana 🍔', type: 'EXPENSE' },
       { name: 'Plata 💵', type: 'INCOME' },
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       }
     }
 
-    // 2. Čitanje svih dostupnih kategorija
+    // Čitanje svih dostupnih kategorija
     const categories = await prisma.category.findMany({
       where: {
         OR: [
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     return NextResponse.json(categories);
   } catch (error) {
     console.error("GET Error:", error);
-    return NextResponse.json({ error: "Greška pri učitavanju" }, { status: 500 });
+    return NextResponse.json({ error: "Greška pri učitavanju!" }, { status: 500 });
   }
 }
 
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(newCategory);
   } catch (error) {
-    return NextResponse.json({ error: "Greška pri kreiranju" }, { status: 500 });
+    return NextResponse.json({ error: "Greška pri kreiranju kategorije!" }, { status: 500 });
   }
 }
 
@@ -81,7 +81,7 @@ export async function DELETE(req: Request) {
       where: { id: parseInt(id) }
     });
 
-    return NextResponse.json({ message: "Obrisano" });
+    return NextResponse.json({ message: "Obrisano!" });
   } catch (error: any) {
     console.error("DELETE Error:", error);
     
@@ -93,6 +93,6 @@ export async function DELETE(req: Request) {
       );
     }
 
-    return NextResponse.json({ error: "Došlo je do greške na serveru" }, { status: 500 });
+    return NextResponse.json({ error: "Došlo je do greške na serveru!" }, { status: 500 });
   }
 }

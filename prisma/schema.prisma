@@ -80,13 +80,12 @@ model Income {
   category    Category @relation(fields: [categoryId], references: [id])
 }
 
-// 5. BUDŽET (NOVO)
-// Služi da postaviš limit: "Neću da potrošim više od 100€ na hranu ovog meseca"
+// 5. BUDŽET 
 model Budget {
   id         Int      @id @default(autoincrement())
-  limit      Float    // Maksimalni iznos
-  month      Int      // npr. 2 za februar
-  year       Int      // npr. 2025
+  limit      Float    
+  month      Int      
+  year       Int      
 
   userId     Int
   user       User     @relation(fields: [userId], references: [id])
@@ -96,12 +95,11 @@ model Budget {
 }
 
 // 6. CILJEVI ŠTEDNJE (NOVO)
-// Služi za planiranje: "Skupljam 1000€ za novi laptop"
 model SavingsGoal {
   id            Int      @id @default(autoincrement())
-  name          String   // npr. "Novi Laptop"
-  targetAmount  Float    // Koliko para treba
-  currentAmount Float    @default(0) // Koliko je već skupljeno
+  name          String  
+  targetAmount  Float    
+  currentAmount Float    @default(0) 
   deadline      DateTime?
 
   userId        Int
