@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Budzetko - Seminarski rad
 
-## Getting Started
+Aplikacija za upravljanje ličnim finansijama sa ulogama korisnika i vizuelizacijom podataka.
 
-First, run the development server:
+## Tehnologije
+* **Frontend:** Next.js 14 (App Router)
+* **Baza podataka:** PostgreSQL sa Prisma ORM-om
+* **Dizajn:** Tailwind CSS
+* **Kontejnerizacija:** Docker & Docker Compose
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Pokretanje aplikacije (Docker)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ovo je najlakši način da pokrenete aplikaciju bez instalacije baze na vašem sistemu.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Otvorite terminal u root folderu projekta.
+2. Pokrenite:
+   ```bash
+   docker-compose up --build 
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Git Flow (Struktura grana)
+Projekat je razvijan kroz sistem grana:
+- `main`: Stabilna verzija.
+- `develop`: Razvojna grana.
+- `feature/login` i `feature/dashboard`: Feature grane.
 
-## Learn More
+## Bezbednosne mere
+1. **SQL Injection:** Zaštita putem Prisma ORM-a.
+2. **XSS:** Zaštita putem React sanitizacije.
+3. **IDOR:** Provera vlasništva nad podacima na API nivou.
 
-To learn more about Next.js, take a look at the following resources:
+## API Dokumentacija
+API specifikacija (Swagger) je dostupna na:
+http://localhost:3000/docs
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## CI/CD Pipeline
+Automatizacija testiranja i build-a je podešena putem GitHub Actions (fajl se nalazi u .github/workflows).

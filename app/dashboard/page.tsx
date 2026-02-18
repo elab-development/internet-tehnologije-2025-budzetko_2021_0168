@@ -13,16 +13,22 @@ import { ConfirmModal } from "../components/confirmModal";
 
 const DEMO_DATA = {
   expenses: [
-    { id: 'd1', description: 'Primer: Stanarina', amount: 35000, createdAt: new Date().toISOString(), category: { name: 'Stanovanje' }, type: 'EXPENSE' },
-    { id: 'd2', description: 'Primer: Namirnice', amount: 4500, createdAt: new Date().toISOString(), category: { name: 'Hrana' }, type: 'EXPENSE' }
+    { id: 'd1', description: 'Mesečna kirija - Stan', amount: 450, createdAt: new Date().toISOString(), category: { name: 'Stanovanje', icon: '🏠' }, type: 'EXPENSE' },
+    { id: 'd2', description: 'Maxi - Nedeljna nabavka', amount: 5500, createdAt: new Date().toISOString(), category: { name: 'Hrana', icon: '🍔' }, type: 'EXPENSE' },
+    { id: 'd3', description: 'Mesečna karta BusPlus', amount: 3000, createdAt: new Date(Date.now() - 86400000).toISOString(), category: { name: 'Prevoz', icon: '🚌' }, type: 'EXPENSE' },
+    { id: 'd4', description: 'Netflix pretplata', amount: 1200, createdAt: new Date(Date.now() - 172800000).toISOString(), category: { name: 'Zabava', icon: '🎭' }, type: 'EXPENSE' }
   ],
   incomes: [
-    { id: 'i1', description: 'Primer: Plata', amount: 95000, createdAt: new Date().toISOString(), category: { name: 'Posao' }, type: 'INCOME' }
+    { id: 'i1', description: 'Plata - Januar', amount: 120000, createdAt: new Date().toISOString(), category: { name: 'Posao', icon: '💵' }, type: 'INCOME' },
+    { id: 'i2', description: 'Bonus za projekat', amount: 15000, createdAt: new Date(Date.now() - 432000000).toISOString(), category: { name: 'Honorara', icon: '💰' }, type: 'INCOME' }
   ],
   categories: [
-    { id: 'c1', name: 'Hrana', type: 'EXPENSE' },
-    { id: 'c2', name: 'Stanovanje', type: 'EXPENSE' },
-    { id: 'c3', name: 'Posao', type: 'INCOME' }
+    { id: 'c1', name: 'Hrana', type: 'EXPENSE', icon: '🍔' },
+    { id: 'c2', name: 'Stanovanje', type: 'EXPENSE', icon: '🏠' },
+    { id: 'c3', name: 'Prevoz', type: 'EXPENSE', icon: '🚌' },
+    { id: 'c4', name: 'Zabava', type: 'EXPENSE', icon: '🎭' },
+    { id: 'c5', name: 'Posao', type: 'INCOME', icon: '💵' },
+    { id: 'c6', name: 'Honorara', type: 'INCOME', icon: '💰' }
   ]
 };
 
@@ -337,7 +343,7 @@ export default function DashboardPage() {
               <div key={cat.id} className="flex items-center gap-3 bg-slate-900/50 border border-slate-800/50 px-5 py-3 rounded-2xl group hover:border-violet-500/30 transition-all">
                 <div className={`w-1 h-1 rounded-full ${cat.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                 <span className="text-xs font-bold text-slate-300 group-hover:text-white">{cat.name}</span>
-                {cat.userId && userRole !== 'GUEST' && (
+                {userRole !== 'GUEST' && (
                   <button onClick={() => deleteCategory(cat.id)} className="text-slate-700 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all ml-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>

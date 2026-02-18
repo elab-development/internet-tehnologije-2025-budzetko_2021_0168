@@ -1,0 +1,30 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: budget-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: budzetko
+      MYSQL_ROOT_PASSWORD: admin123
+      MYSQL_USER: user123
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin123"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: budget-app
+    restart: always
+    ports:
+      - "3000:3000"
+      - "5555:5555"
+    environment:
+      DATABASE_URL: "mysql://user123:admin123@db:3306/budzetko"
+    depends_on:
+      db:
+        condition: service_healthy
