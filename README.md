@@ -4,7 +4,7 @@ Aplikacija za upravljanje ličnim finansijama sa ulogama korisnika i vizuelizaci
 
 ## Tehnologije
 * **Frontend:** Next.js 14 (App Router)
-* **Baza podataka:** PostgreSQL sa Prisma ORM-om
+* **Baza podataka:** MySQL sa Prisma ORM-om
 * **Dizajn:** Tailwind CSS
 * **Kontejnerizacija:** Docker & Docker Compose
 
@@ -12,11 +12,19 @@ Aplikacija za upravljanje ličnim finansijama sa ulogama korisnika i vizuelizaci
 
 Ovo je najlakši način da pokrenete aplikaciju bez instalacije baze na vašem sistemu.
 
-1. Otvorite terminal u root folderu projekta.
-2. Pokrenite:
+1. **Podizanje kontejnera:**
+   U root folderu projekta pokrenite komandu:
    ```bash
    docker-compose up --build 
    ```
+2. **Inicijalizacija baze podataka:**
+   Dok kontejneri rade, otvorite novi terminal i pokrenite sledeću komandu kako biste kreirali tabele i sinhronizovali bazu:
+   ```bash
+   docker exec -it budget-app npx prisma db push
+   ```
+
+3. **Pristup aplikaciji:**
+   Aplikacija je dostupna na: http://localhost:3000
 
 ## Git Flow (Struktura grana)
 Projekat je razvijan kroz sistem grana:

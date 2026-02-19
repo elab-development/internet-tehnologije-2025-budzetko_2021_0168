@@ -10,6 +10,7 @@ import { CategoryModal } from "../components/categoryModal";
 import { BudgetCharts } from "../components/charts";
 import { QuickActions } from "../components/quickActions"; 
 import { ConfirmModal } from "../components/confirmModal"; 
+import { getExchangeRate } from '@/lib/exchangeApi';
 
 const DEMO_DATA = {
   expenses: [
@@ -61,6 +62,8 @@ export default function DashboardPage() {
   const [modalMode, setModalMode] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
   const [formData, setFormData] = useState({ description: '', amount: '', categoryId: '' });
 
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     const storedName = localStorage.getItem('userName');
@@ -84,6 +87,9 @@ export default function DashboardPage() {
 
   const loadAllData = async (userId: string, role: string) => {
     try {
+      const rate = await getExchangeRate("EUR");
+      setExchangeRate(rate);
+
       const [resExp, resInc, resCat] = await Promise.all([
         fetch(`/api/expenses?userId=${userId}`),
         fetch(`/api/incomes?userId=${userId}`),
@@ -249,10 +255,26 @@ export default function DashboardPage() {
       <main className="p-6 md:p-8 max-w-7xl mx-auto space-y-10 relative pb-32 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
           <StatsCard title="Prihod" amount={totalIncome} type="income" />
           <StatsCard title="Trošak" amount={totalExpense} type="expense" />
           <StatsCard title="Bilans" amount={totalIncome - totalExpense} type="balance" />
+
+    <div className="bg-slate-900/40 border border-violet-500/20 p-6 rounded-[2rem] backdrop-blur-md shadow-2xl hover:border-violet-500/50 transition-all group">
+      <div className="flex justify-between items-start mb-4">
+        <span className="p-2 bg-violet-500/10 rounded-lg border border-violet-500/20 text-violet-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M15 9H9"/><path d="M15 15H9"/></svg>
+        </span>
+        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">External API</span>
+      </div>
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-tight mb-1">Vrednost u EUR</h3>
+      <p className="text-2xl font-black text-white italic">
+        {exchangeRate ? ((totalIncome - totalExpense) * exchangeRate).toFixed(2) : "0.00"} €
+      </p>
+      <p className="text-[9px] text-violet-500/60 font-bold mt-2 truncate">
+        Kurs: 1 RSD = {exchangeRate?.toFixed(5)} EUR
+      </p>
+    </div>
         </div>
 
         {userRole === 'ADMIN' && users.length > 0 && (

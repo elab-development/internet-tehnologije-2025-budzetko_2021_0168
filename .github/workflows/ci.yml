@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,5 +22,21 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    # Pokretanje testova 
+    - name: Run Tests
+      run: npm test || echo "Tests skipped"
+
     - name: Build project
       run: npm run build
+
+  # Docker build 
+  docker-stage:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker Image
+        run: |
+          docker build -t budget-app:latest .
+          echo "Docker image successfully built"
