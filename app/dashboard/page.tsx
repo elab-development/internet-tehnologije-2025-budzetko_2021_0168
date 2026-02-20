@@ -271,7 +271,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
     setIsCatModalOpen(true);
   };
 
-  const handleAddCategory = async (e: React.FormEvent) => {
+  const handleSaveCategory = async (e: React.FormEvent) => {
     if (userRole === 'GUEST') return;
     e.preventDefault();
     const userId = localStorage.getItem('userId');
@@ -467,16 +467,16 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       )}
 
       {/* MODALI */}
-      <CategoryModal 
-        isOpen={isCatModalOpen} 
+      <CategoryModal
+        isOpen={isCatModalOpen}
+        isEditing={Boolean(editingCategoryId)} // DODAJ OVU LINIJU
         onClose={() => {
           setIsCatModalOpen(false);
-          setEditingCategoryId(null);
-          setNewCategory({ name: '', type: 'EXPENSE' });
-        }} 
-        onSave={handleAddCategory} 
-        newCategory={newCategory} 
-        setNewCategory={setNewCategory} 
+          setEditingCategoryId(null); // Resetuj ID kad zatvoriš
+        }}
+        onSave={handleSaveCategory}
+        newCategory={newCategory}
+        setNewCategory={setNewCategory}
       />
       <TransactionModal 
         isOpen={isModalOpen} 
