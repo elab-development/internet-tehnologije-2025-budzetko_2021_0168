@@ -46,7 +46,7 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
               <div className="flex items-center gap-2 mb-2">
                 <div className={`w-2 h-2 rounded-full animate-pulse ${isIncome ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]'}`} />
                 <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                  Novi {isIncome ? 'Prihod' : 'Trošak'}
+                  {formData.id ? 'Izmena' : 'Novi'} {isIncome ? 'Prihod' : 'Trošak'}
                 </h2>
               </div>
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
@@ -126,10 +126,10 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
                   Poništi
                 </button>
                 
-                <button 
-                  type="submit" 
-                  className="flex-[2] bg-violet-600 hover:bg-violet-500 text-white font-black py-5 rounded-[1.5rem] transition-all uppercase text-[10px] tracking-[0.2em] shadow-[0_0_25px_rgba(139,92,246,0.3)] active:scale-95"
-                >
+                <button type="submit" ... >
+                  {formData.id ? 'Sačuvaj izmene' : `Dodaj ${isIncome ? 'Prihod' : 'Trošak'}`}
+                </button>
+                
                   Sačuvaj {isIncome ? 'Prihod' : 'Trošak'}
                 </button>
               </div>

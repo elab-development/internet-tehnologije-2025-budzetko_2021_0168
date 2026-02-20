@@ -49,3 +49,30 @@ export async function DELETE(req: Request) {
 
   return NextResponse.json({ message: "Obrisano!" });
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const body = await request.json();
+    const { description, amount, categoryId } = body;
+
+    if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
+
+    const updated = await prisma.income.update({ 
+      where: { 
+        id: parseInt(id) 
+      },
+      data: { 
+        description, 
+        amount: parseFloat(amount), 
+        categoryId: categoryId ? parseInt(categoryId) : undefined
+      }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error("PRISMA ERROR:", error.message);
+    return NextResponse.json({ error: "Greška pri ažuriranju: " + error.message }, { status: 500 });
+  }
+}

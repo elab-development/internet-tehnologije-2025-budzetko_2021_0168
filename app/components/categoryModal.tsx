@@ -2,6 +2,7 @@
 
 interface Props {
   isOpen: boolean;
+  isEditing: boolean;
   onClose: () => void;
   onSave: (e: React.FormEvent) => void;
   newCategory: { name: string; type: 'INCOME' | 'EXPENSE' } | undefined | null;
@@ -34,7 +35,7 @@ export function CategoryModal({ isOpen, onClose, onSave, newCategory, setNewCate
         <div className="p-8">
           <div className="mb-8 text-center">
             <h2 className="text-xl font-black text-slate-100 italic uppercase tracking-tighter">
-              Nova Kategorija
+              {newCategory?.id ? 'Izmeni Kategoriju' : 'Nova Kategorija'} 
             </h2>
           </div>
 

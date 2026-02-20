@@ -3,9 +3,10 @@
 interface Props {
   transactions: any[];
   onDelete?: (id: string, type: 'INCOME' | 'EXPENSE') => void;
+  onEdit?: (transaction: any) => void;
 }
 
-export function TransactionTable({ transactions, onDelete }: Props) {
+export function TransactionTable({ transactions, onDelete, onEdit }: Props) {
   if (transactions.length === 0) {
     return (
       <div className="text-center py-24 bg-slate-950/20 rounded-[2.5rem] border border-dashed border-slate-800 animate-in fade-in zoom-in duration-700">
@@ -78,6 +79,15 @@ export function TransactionTable({ transactions, onDelete }: Props) {
                   {new Date(t.createdAt).toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
+
+              {onEdit && (
+                <button 
+                  onClick={() => onEdit(t)} 
+                  className="text-slate-500 hover:text-violet-400 p-1 transition-all mr-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                </button>
+              )}
               
               {onDelete && (
                 <button 

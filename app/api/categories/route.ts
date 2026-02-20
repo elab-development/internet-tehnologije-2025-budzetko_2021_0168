@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 
-// ČITANJE KATEGORIJA (Samo one koje pripadaju korisniku)
+// ČITANJE KATEGORIJA
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -12,15 +12,12 @@ export async function GET(req: Request) {
     }
 
     const categories = await prisma.category.findMany({
-      where: {
-        userId: parseInt(userId)
-      },
+      where: { userId: parseInt(userId) },
       orderBy: { name: 'asc' }
     });
     
     return NextResponse.json(categories);
   } catch (error) {
-    console.error("GET Error:", error);
     return NextResponse.json({ error: "Greška pri učitavanju!" }, { status: 500 });
   }
 }
@@ -46,7 +43,7 @@ export async function POST(req: Request) {
   }
 }
 
-// BRISANJE KATEGORIJE (Ostaje isto, jer je dobro)
+// BRISANJE KATEGORIJE 
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -55,7 +52,7 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
 
     await prisma.category.delete({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) } // Koristimo parseInt
     });
 
     return NextResponse.json({ message: "Obrisano!" });
@@ -67,5 +64,26 @@ export async function DELETE(req: Request) {
       );
     }
     return NextResponse.json({ error: "Došlo je do greške na serveru!" }, { status: 500 });
+  }
+}
+
+// IZMENA KATEGORIJE
+export async function PATCH(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const { name, type } = await req.json();
+
+    if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
+
+    const updated = await prisma.category.update({
+      where: { id: parseInt(id) }, // OBAVEZNO parseInt ako je u bazi Int
+      data: { name, type }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("PATCH Error:", error);
+    return NextResponse.json({ error: "Greška pri ažuriranju" }, { status: 500 });
   }
 }

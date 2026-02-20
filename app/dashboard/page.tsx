@@ -59,6 +59,8 @@ export default function DashboardPage() {
   const [newCategory, setNewCategory] = useState({ name: '', type: 'EXPENSE' as 'INCOME' | 'EXPENSE' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false); 
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [modalMode, setModalMode] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
   const [formData, setFormData] = useState({ description: '', amount: '', categoryId: '' });
 
@@ -191,24 +193,64 @@ export default function DashboardPage() {
       }
     });
   };
+const handleStartEditTransaction = (t: any) => {
+  if (userRole === 'GUEST') return;
+  
+  // 1. Postavi mod (INCOME/EXPENSE)
+  setModalMode(t.type); 
+  
+  // 2. Popuni formu podacima iz baze
+  setFormData({
+    description: t.description || '',
+    amount: t.amount?.toString() || '',
+    // Proveravamo oba mesta gde ID kategorije može biti sakriven
+    categoryId: (t.categoryId || t.category?.id || '').toString()
+  });
 
-  const handleSaveTransaction = async (e: React.FormEvent) => {
-    if (userRole === 'GUEST') return;
-    e.preventDefault();
-    const userId = localStorage.getItem('userId');
-    const endpoint = modalMode === 'INCOME' ? '/api/incomes' : '/api/expenses';
-    const finalCategoryId = formData.categoryId || categories.find(c => c.type === modalMode)?.id;
+  // 3. Postavi ID koji kaže "Ovo je edit, a ne novi unos"
+  setEditingTransactionId(t.id);
+  setIsModalOpen(true);
+};
+const handleSaveTransaction = async (e: React.FormEvent) => {
+  if (userRole === 'GUEST') return;
+  e.preventDefault();
+  
+  const userId = localStorage.getItem('userId');
+  const isEditing = Boolean(editingTransactionId); // Provera da li editujemo
+
+  const method = isEditing ? 'PATCH' : 'POST';
+  
+  // Endpoint mora imati ID u URL-u ako je PATCH
+  const baseUrl = modalMode === 'INCOME' ? '/api/incomes' : '/api/expenses';
+  const endpoint = isEditing ? `${baseUrl}?id=${editingTransactionId}` : baseUrl;
+
+  try {
     const res = await fetch(endpoint, {
-      method: 'POST',
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, userId, categoryId: finalCategoryId })
+      body: JSON.stringify({ 
+        description: formData.description,
+        amount: parseFloat(formData.amount), // Mora biti Float/Number
+        categoryId: parseInt(formData.categoryId), // Mora biti Int/Number
+        userId: userId ? parseInt(userId) : null
+      })
     });
+
     if (res.ok) {
+      // Uspeh - zatvori i očisti
       setIsModalOpen(false);
+      setEditingTransactionId(null);
       setFormData({ description: '', amount: '', categoryId: '' });
       if (userId) loadAllData(userId, userRole);
+    } else {
+      const errorMsg = await res.text();
+      console.error("Server Error:", errorMsg);
+      alert("Greška sa servera: " + errorMsg);
     }
-  };
+  } catch (err) {
+    console.error("Fetch Error:", err);
+  }
+};
 
   const updateUserRole = async (userId: number, newRole: string) => {
     const res = await fetch('/api/user', {
@@ -222,18 +264,36 @@ export default function DashboardPage() {
     }
   };
 
+  const handleStartEditCategory = (cat: any) => {
+    if (userRole === 'GUEST') return;
+    setNewCategory({ name: cat.name, type: cat.type });
+    setEditingCategoryId(cat.id);
+    setIsCatModalOpen(true);
+  };
+
   const handleAddCategory = async (e: React.FormEvent) => {
     if (userRole === 'GUEST') return;
     e.preventDefault();
     const userId = localStorage.getItem('userId');
-    const res = await fetch('/api/categories', {
-      method: 'POST',
+    
+    // Ako imamo editingCategoryId, koristimo PATCH, inače POST
+    const method = editingCategoryId ? 'PATCH' : 'POST';
+    const endpoint = editingCategoryId 
+      ? `/api/categories?id=${editingCategoryId}` 
+      : '/api/categories';
+
+    const res = await fetch(endpoint, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...newCategory, userId })
     });
+
     if (res.ok) {
       setIsCatModalOpen(false);
+      setEditingCategoryId(null); // Ovo je ključno da se resetuje!
       setNewCategory({ name: '', type: 'EXPENSE' });
+      
+      // Osvežavanje liste
       const resCat = await fetch(`/api/categories?userId=${userId}`);
       if (resCat.ok) setCategories(await resCat.json());
     }
@@ -252,7 +312,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#02040a] text-slate-100 selection:bg-violet-500/30 font-sans">
       <Navbar userName={userName} userRole={userRole} />
 
-      <main className="p-6 md:p-8 max-w-7xl mx-auto space-y-10 relative pb-32 overflow-hidden">
+      <main className="p-6 md:p-8 max-w-7xl mx-auto space-y-10 relative pb-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
@@ -349,7 +409,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="p-4 md:p-8">
-            <TransactionTable transactions={filteredTransactions} onDelete={userRole !== 'GUEST' ? handleDeleteTransaction : undefined} />
+            <TransactionTable 
+              transactions={filteredTransactions} 
+              onDelete={userRole !== 'GUEST' ? handleDeleteTransaction : undefined}
+              onEdit={userRole !== 'GUEST' ? handleStartEditTransaction : undefined} 
+            />
           </div>
         </section>
 
@@ -361,17 +425,35 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="flex flex-wrap gap-4">
-            {categories.map((cat: any) => (
-              <div key={cat.id} className="flex items-center gap-3 bg-slate-900/50 border border-slate-800/50 px-5 py-3 rounded-2xl group hover:border-violet-500/30 transition-all">
-                <div className={`w-1 h-1 rounded-full ${cat.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                <span className="text-xs font-bold text-slate-300 group-hover:text-white">{cat.name}</span>
-                {userRole !== 'GUEST' && (
-                  <button onClick={() => deleteCategory(cat.id)} className="text-slate-700 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all ml-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                  </button>
-                )}
-              </div>
-            ))}
+      {categories.map((cat: any) => (
+        <div key={cat.id} className="flex items-center gap-3 bg-slate-900/50 border border-slate-800/50 px-5 py-3 rounded-2xl group hover:border-violet-500/30 transition-all">
+          {/* Tačkica za tip */}
+          <div className={`w-1 h-1 rounded-full ${cat.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+          
+          {/* Naziv kategorije */}
+          <span className="text-xs font-bold text-slate-300 group-hover:text-white">{cat.name}</span>
+          
+          {userRole !== 'GUEST' && (
+            <div className="flex gap-2 ml-1">
+              {/* DUGME ZA IZMENU (Olovka) - Vidljivo samo na hover */}
+              <button 
+                onClick={() => handleStartEditCategory(cat)} 
+                className="text-slate-500 hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              </button>
+
+              {/* DUGME ZA BRISANJE (X)*/}
+              <button 
+                onClick={() => deleteCategory(cat.id)} 
+                className="text-slate-700 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
           </div>
         </section>
       </main>
@@ -385,8 +467,30 @@ export default function DashboardPage() {
       )}
 
       {/* MODALI */}
-      <CategoryModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} onSave={handleAddCategory} newCategory={newCategory} setNewCategory={setNewCategory} />
-      <TransactionModal isOpen={isModalOpen} mode={modalMode} formData={formData} setFormData={setFormData} onSave={handleSaveTransaction} onClose={() => setIsModalOpen(false)} categories={categories} />
+      <CategoryModal 
+        isOpen={isCatModalOpen} 
+        onClose={() => {
+          setIsCatModalOpen(false);
+          setEditingCategoryId(null);
+          setNewCategory({ name: '', type: 'EXPENSE' });
+        }} 
+        onSave={handleAddCategory} 
+        newCategory={newCategory} 
+        setNewCategory={setNewCategory} 
+      />
+      <TransactionModal 
+        isOpen={isModalOpen} 
+        mode={modalMode} 
+        formData={formData} 
+        setFormData={setFormData} 
+        onSave={handleSaveTransaction} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTransactionId(null);
+          setFormData({ description: '', amount: '', categoryId: '' });
+        }} 
+        categories={categories} 
+      />
       
       <ConfirmModal 
         isOpen={modalConfig.isOpen}

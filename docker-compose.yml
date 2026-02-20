@@ -10,6 +10,9 @@ services:
       MYSQL_PASSWORD: admin123
     ports:
       - "3306:3306"
+   
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-padmin123"]
       interval: 5s
@@ -28,3 +31,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+volumes:
+  mysql_data:

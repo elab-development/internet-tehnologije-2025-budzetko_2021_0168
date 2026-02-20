@@ -1,27 +1,27 @@
-# Koristimo Node.js bazu
-FROM node:20-alpine
+# 1. Koristimo 'slim' verziju koja je stabilnija za Next.js i baze
+FROM node:20-slim
 
-# Dodajemo OpenSSL i libc6-compat jer su neophodni za Prismu na Alpine verziji
-RUN apk add --no-cache openssl libc6-compat
+# 2. Instaliramo OpenSSL koji je neophodan za Prismu
+RUN apt-get update && apt-get install -y openssl
 
-# Postavljamo radni direktorijum unutar kontejnera
+# 3. Postavljamo radni direktorijum
 WORKDIR /app
 
-# Kopiramo package fajlove i instaliramo zavisnosti
+# 4. Kopiramo package fajlove i instaliramo zavisnosti
 COPY package*.json ./
 RUN npm install
 
-# Kopiramo ostali kod
+# 5. Kopiramo ostatak koda
 COPY . .
 
-# Generišemo Prisma klijent 
+# 6. Generišemo Prisma klijent
 RUN npx prisma generate
 
-# Build-ujemo Next.js aplikaciju
+# 7. Build-ujemo Next.js aplikaciju
 RUN npm run build
 
-# Otvaramo port 3000
+# 8. Otvaramo port 3000
 EXPOSE 3000
 
-# Komanda za pokretanje aplikacije
+# 9. Komanda za pokretanje aplikacije
 CMD ["npm", "run", "start"]
