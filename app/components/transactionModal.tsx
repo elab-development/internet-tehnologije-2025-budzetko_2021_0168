@@ -13,12 +13,14 @@ interface Props {
 export function TransactionModal({ isOpen, onClose, mode, formData, setFormData, onSave, categories }: Props) {
   if (!isOpen) return null;
   const isIncome = mode === 'INCOME';
+  
   const focusStyles = isIncome 
     ? 'focus:border-emerald-500/50 focus:ring-emerald-500/20' 
     : 'focus:border-rose-500/50 focus:ring-rose-500/20';
-  const accentColor = isIncome ? 'violet-500' : 'rose-500';
-  const accentEmerald = 'emerald-500';
-  const activeColor = isIncome ? accentEmerald : 'rose-500';
+    
+  const buttonStyles = isIncome
+    ? 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+    : 'bg-rose-500 hover:bg-rose-600 shadow-[0_0_20px_rgba(244,63,94,0.2)]';
 
   const inputClass = `
     w-full bg-slate-950 border border-slate-800/60 
@@ -50,7 +52,7 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
                 </h2>
               </div>
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
-                Unesite podatke za novu
+                {formData.id ? 'Ažurirajte postojeće podatke' : 'Unesite podatke za novu stavku'}
               </p>
             </div>
             <button 
@@ -72,6 +74,7 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 autoFocus
+                required
               />
             </div>
 
@@ -117,22 +120,22 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
             </div>
 
             {/* Dugmad */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                <button 
-                  type="button" 
-                  onClick={onClose} 
-                  className="flex-1 bg-slate-800/40 hover:bg-slate-800 text-slate-400 font-black py-5 rounded-[1.5rem] transition-all uppercase text-[10px] tracking-[0.2em] border border-slate-800/50"
-                >
-                  Poništi
-                </button>
-                
-                <button type="submit" ... >
-                  {formData.id ? 'Sačuvaj izmene' : `Dodaj ${isIncome ? 'Prihod' : 'Trošak'}`}
-                </button>
-                
-                  Sačuvaj {isIncome ? 'Prihod' : 'Trošak'}
-                </button>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-4 pt-6">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="flex-1 bg-slate-800/40 hover:bg-slate-800 text-slate-400 font-black py-5 rounded-[1.5rem] transition-all uppercase text-[10px] tracking-[0.2em] border border-slate-800/50"
+              >
+                Poništi
+              </button>
+              
+              <button 
+                type="submit"
+                className={`flex-[2] ${buttonStyles} text-slate-950 font-black py-5 rounded-[1.5rem] transition-all uppercase text-[10px] tracking-[0.2em]`}
+              >
+                {formData.id ? 'Sačuvaj izmene' : `Dodaj ${isIncome ? 'Prihod' : 'Trošak'}`}
+              </button>
+            </div>
           </form>
         </div>
       </div>
