@@ -11,6 +11,11 @@ import { BudgetCharts } from "../components/charts";
 import { QuickActions } from "../components/quickActions"; 
 import { ConfirmModal } from "../components/confirmModal"; 
 import { getExchangeRate } from '@/lib/exchangeApi';
+import { BudgetTracker } from "../components/BudgetTracker";
+import { BudgetModal } from "../components/budgetModal";
+import { SavingsGoals } from "../components/SavingsGoals";
+import { GoalModal } from "../components/GoalModal";
+
 
 const DEMO_DATA = {
   expenses: [
@@ -39,6 +44,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('USER'); 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [budgets, setBudgets] = useState<any[]>([]);
   
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -65,11 +71,30 @@ export default function DashboardPage() {
   const [formData, setFormData] = useState({ description: '', amount: '', categoryId: '' });
 
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [goals, setGoals] = useState<any[]>([]);
 
-  useEffect(() => {
+useEffect(() => {
+  // Pravimo pomoćnu async funkciju unutar useEffect-a
+  const initDashboard = async () => {
     const userId = localStorage.getItem('userId');
     const storedName = localStorage.getItem('userName');
     const storedRole = localStorage.getItem('userRole'); 
+
+    if (userId) {
+      try {
+        const resBudgets = await fetch(`/api/budgets?userId=${userId}`);
+        const dataBudgets = await resBudgets.json();
+        setBudgets(dataBudgets);
+
+        const resGoals = await fetch(`/api/goals?userId=${userId}`);
+        const dataGoals = await resGoals.json();
+        if (Array.isArray(dataGoals)) setGoals(dataGoals);
+      } catch (err) {
+        console.error("Greška pri učitavanju budžeta:", err);
+      }
+    }
     
     if (!userId) {
       setCurrentUserId(null);
@@ -78,6 +103,7 @@ export default function DashboardPage() {
       setExpenses(DEMO_DATA.expenses);
       setIncomes(DEMO_DATA.incomes);
       setCategories(DEMO_DATA.categories);
+      setGoals([]);
       setLoading(false);
     } else {
       setCurrentUserId(userId);
@@ -85,28 +111,53 @@ export default function DashboardPage() {
       setUserRole(storedRole || 'USER');
       loadAllData(userId, storedRole || 'USER');
     }
-  }, [router]);
+  };
+
+  initDashboard(); // Pozivamo funkciju
+}, []);
+
+  const fetchGoals = async () => {
+    if (!currentUserId) return; // Provera da li imamo ID
+    try {
+      const response = await fetch(`/api/goals?userId=${currentUserId}`); 
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setGoals(data);
+      }
+    } catch (error) {
+      console.error("Greška pri osvežavanju ciljeva:", error);
+    }
+  };
 
   const loadAllData = async (userId: string, role: string) => {
     try {
       const rate = await getExchangeRate("EUR");
       setExchangeRate(rate);
 
-      const [resExp, resInc, resCat] = await Promise.all([
+      const [resExp, resInc, resCat, resGoals] = await Promise.all([
         fetch(`/api/expenses?userId=${userId}`),
         fetch(`/api/incomes?userId=${userId}`),
-        fetch(`/api/categories?userId=${userId}`) 
+        fetch(`/api/categories?userId=${userId}`),
+        fetch(`/api/goals?userId=${userId}`) // Dodaj i ciljeve ovde
       ]);
       
       if (resExp.ok) setExpenses(await resExp.json());
       if (resInc.ok) setIncomes(await resInc.json());
       if (resCat.ok) setCategories(await resCat.json());
+      if (resGoals.ok) {
+        const gData = await resGoals.json();
+        if (Array.isArray(gData)) setGoals(gData);
+      }
 
       if (role === 'ADMIN') {
         const resUsers = await fetch('/api/user');
         if (resUsers.ok) setUsers(await resUsers.json());
       }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const allTransactions = useMemo(() => {
@@ -299,6 +350,23 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
     }
   };
 
+  const handleSaveBudget = async (data: { categoryId: string; limit: number }) => {
+  const userId = localStorage.getItem('userId');
+  try {
+    const res = await fetch('/api/budgets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, userId: userId ? parseInt(userId) : null })
+    });
+    if (res.ok) {
+      setIsBudgetModalOpen(false);
+      // Osveži budžete
+      const resBudgets = await fetch(`/api/budgets?userId=${userId}`);
+      setBudgets(await resBudgets.json());
+    }
+  } catch (err) { console.error(err); }
+};
+
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#02040a]">
       <div className="flex flex-col items-center gap-4">
@@ -337,6 +405,33 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
     </div>
         </div>
 
+<section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+  {/* Leva kolona: Grafikoni (zauzima 8 od 12 kolona) */}
+  <div className="lg:col-span-8 h-full">
+    <BudgetCharts transactions={allTransactions} />
+  </div>
+
+  {/* Desna kolona: Tracker-i (zauzima 4 od 12 kolona) */}
+  <div className="lg:col-span-4 flex flex-col gap-8"> 
+    {/* Budžeti kartica */}
+    <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
+       <BudgetTracker 
+          budgets={budgets} 
+          expenses={expenses} 
+          onAddBudget={() => setIsBudgetModalOpen(true)}
+       />
+    </div>
+    
+    {/* Ciljevi kartica */}
+    <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
+       <SavingsGoals 
+          goals={goals} 
+          onAddGoal={() => setIsGoalModalOpen(true)} 
+       />
+    </div>
+  </div>
+</section>
+
         {userRole === 'ADMIN' && users.length > 0 && (
           <section className="bg-slate-900/40 border border-slate-800/50 p-8 md:p-10 rounded-[3rem] relative shadow-2xl backdrop-blur-md">
             <div className="flex items-center gap-4 mb-10">
@@ -372,9 +467,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
           </section>
         )}
 
-        <section className="relative z-10">
-          <BudgetCharts transactions={allTransactions} />
-        </section>
+
 
         <section className="bg-slate-900/30 backdrop-blur-xl border border-slate-800/60 rounded-[3rem] overflow-hidden shadow-2xl relative z-10">
           <div className="p-8 md:p-10 border-b border-slate-800/50 space-y-8 bg-slate-900/20">
@@ -498,6 +591,20 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
         message={modalConfig.message}
         onConfirm={modalConfig.onConfirm}
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+      />
+
+      <BudgetModal 
+        isOpen={isBudgetModalOpen} 
+        categories={categories} 
+        onClose={() => setIsBudgetModalOpen(false)} 
+        onSave={handleSaveBudget} 
+      />
+
+      <GoalModal 
+        isOpen={isGoalModalOpen} 
+        onClose={() => setIsGoalModalOpen(false)} 
+        userId={currentUserId || ''} 
+        onSuccess={fetchGoals} 
       />
     </div>
   );

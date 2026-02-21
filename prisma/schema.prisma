@@ -84,24 +84,25 @@ model Income {
 model Budget {
   id         Int      @id @default(autoincrement())
   limit      Float    
-  month      Int      
-  year       Int      
+  month      Int       @default(1) 
+  year       Int       @default(2026)
 
   userId     Int
   user       User     @relation(fields: [userId], references: [id])
 
-  categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
 }
 
 // 6. CILJEVI ŠTEDNJE (NOVO)
 model SavingsGoal {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   name          String  
   targetAmount  Float    
-  currentAmount Float    @default(0) 
+  currentAmount Float     @default(0) 
   deadline      DateTime?
+  createdAt     DateTime  @default(now())
 
   userId        Int
-  user          User     @relation(fields: [userId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
 }
