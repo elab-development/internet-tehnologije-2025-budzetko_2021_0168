@@ -10,9 +10,35 @@ interface Goal {
 interface SavingsGoalsProps {
   goals: Goal[];
   onAddGoal: () => void;
+  onUpdate: () => void;
 }
 
-export function SavingsGoals({ goals, onAddGoal }: SavingsGoalsProps) {
+export function SavingsGoals({ goals, onAddGoal, onUpdate }: SavingsGoalsProps) {
+  // Dodaj ovo unutar SavingsGoals komponente, iznad return-a
+const handleAddMoney = async (goalId: string, currentAmount: number, targetAmount: number) => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      const newAmount = currentAmount + 1000; // Dodajemo po 1000 RSD, možeš staviti koliko želiš
+
+      try {
+        const res = await fetch('/api/goals', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: goalId,
+            currentAmount: newAmount,
+            userId: userId
+          }),
+        });
+
+        if (res.ok) {
+          onUpdate(); 
+        }
+      } catch (err) {
+        console.error("Greška pri uplati:", err);
+      }
+  };
   return (
     <div className="bg-slate-900/40 border border-slate-800/50 p-8 rounded-[3rem] backdrop-blur-md h-full shadow-2xl relative overflow-hidden">
       {/* Background Decor */}
@@ -50,16 +76,32 @@ export function SavingsGoals({ goals, onAddGoal }: SavingsGoalsProps) {
                     <p className="text-[10px] text-slate-400 font-bold tracking-widest">
                       PREOSTALO: {(goal.targetAmount - goal.currentAmount).toLocaleString()} RSD
                     </p>
+                    <button 
+                        onClick={() => handleAddMoney(goal.id, goal.currentAmount, goal.targetAmount)}
+                        disabled={goal.currentAmount >= goal.targetAmount}
+                        className={`mt-3 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-black/20
+                          ${goal.currentAmount >= goal.targetAmount 
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50' 
+                            : 'bg-emerald-500 text-white hover:bg-emerald-400 active:scale-90'}`}
+                      >
+                        {goal.currentAmount >= goal.targetAmount ? '✅ ISPUNJENO' : '+ DODAJ 1000 RSD'}
+                    </button>
                   </div>
                   <div className="text-right">
-                    <span className="text-emerald-400 font-black text-xs italic">{Math.round(progress)}%</span>
+                    <span className={`font-black text-xs italic ${progress >= 100 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      {progress >= 100 ? 'ISPUNJENO 🏆' : `${Math.round(progress)}%`}
+                    </span>
                   </div>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-600 to-teal-400 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      progress >= 100 
+                        ? 'bg-gradient-to-r from-amber-500 to-yellow-300 shadow-[0_0_15px_rgba(245,158,11,0.5)]' 
+                        : 'bg-gradient-to-r from-emerald-600 to-teal-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                    }`}
                     style={{ width: `${progress}%` }}
                   />
                 </div>

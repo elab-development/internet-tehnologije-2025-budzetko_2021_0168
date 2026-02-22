@@ -15,6 +15,8 @@ import { BudgetTracker } from "../components/BudgetTracker";
 import { BudgetModal } from "../components/budgetModal";
 import { SavingsGoals } from "../components/SavingsGoals";
 import { GoalModal } from "../components/GoalModal";
+import { BadgesDisplay } from "../components/BadgesDisplay";
+import { toast } from 'react-hot-toast';
 
 
 const DEMO_DATA = {
@@ -45,6 +47,7 @@ export default function DashboardPage() {
   const [userRole, setUserRole] = useState('USER'); 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [budgets, setBudgets] = useState<any[]>([]);
+  const [userBadges, setUserBadges] = useState<string>('');
   
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -134,19 +137,91 @@ useEffect(() => {
       const rate = await getExchangeRate("EUR");
       setExchangeRate(rate);
 
-      const [resExp, resInc, resCat, resGoals] = await Promise.all([
+      const [resExp, resInc, resCat, resGoals, resUser, resBudgets] = await Promise.all([
         fetch(`/api/expenses?userId=${userId}`),
         fetch(`/api/incomes?userId=${userId}`),
         fetch(`/api/categories?userId=${userId}`),
-        fetch(`/api/goals?userId=${userId}`) // Dodaj i ciljeve ovde
+        fetch(`/api/goals?userId=${userId}`),
+        fetch(`/api/user/${userId}`),
+        fetch(`/api/budgets?userId=${userId}`)
       ]);
       
       if (resExp.ok) setExpenses(await resExp.json());
       if (resInc.ok) setIncomes(await resInc.json());
       if (resCat.ok) setCategories(await resCat.json());
+      
+      if (resUser.ok) {
+      const userData = await resUser.json();
+      const newBadges = userData.badges || "";
+
+        if (userBadges && userData.badges && userData.badges.length > userBadges.length) {
+        toast.success('🎉 ČESTITAMO! Osvojili ste novi bedž!', {
+          duration: 5000,
+          position: 'top-right',
+          icon: '🏆',
+          style: {
+            borderRadius: '10px',
+            background: '#1e1b4b',
+            color: '#fff',
+            border: '1px solid #8b5cf6'
+          },
+        });
+      }
+        setUserBadges(newBadges);
+      }
       if (resGoals.ok) {
         const gData = await resGoals.json();
         if (Array.isArray(gData)) setGoals(gData);
+      }
+
+      // --- PAMETNE NOTIFIKACIJE ZA BUDŽET (3 NIVOA) ---
+      if (resBudgets.ok) {
+        const dataBudgets = await resBudgets.json();
+        setBudgets(dataBudgets);
+
+        dataBudgets.forEach((budget: any) => {
+          const spent = expenses
+            .filter((e: any) => Number(e.categoryId) === Number(budget.categoryId))
+            .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+
+          const percent = (spent / budget.limit) * 100;
+
+          // 1. SCENARIO: LIMIT PREKORAČEN (Preko 100%)
+          if (percent >= 100) {
+            toast.error(`LIMIT PREKORAČEN: ${budget.category?.name}!`, {
+              duration: 8000,
+              icon: '🚨',
+              style: {
+                background: '#450a0a',
+                color: '#fff',
+                border: '2px solid #f43f5e',
+                boxShadow: '0 0 20px rgba(244, 63, 94, 0.4)',
+              },
+            });
+          } 
+          // 2. SCENARIO: SKORO POTROŠENO (Preko 90%)
+          else if (percent >= 90) {
+            toast(`Oprez: Potrošili ste ${percent.toFixed(0)}% budžeta za ${budget.category?.name}!`, {
+              icon: '⚠️',
+              style: {
+                background: '#1e1b4b',
+                color: '#fbbf24',
+                border: '1px solid #fbbf24',
+              },
+            });
+          }
+          // 3. NOVO - SCENARIO: POLOVINA BUDŽETA (Preko 50%)
+          else if (percent >= 50) {
+            toast(`Na pola ste budžeta za ${budget.category?.name}.`, {
+              icon: 'ℹ️',
+              style: {
+                background: '#0f172a',
+                color: '#a78bfa',
+                border: '1px solid #7c3aed',
+              },
+            });
+          }
+        });
       }
 
       if (role === 'ADMIN') {
@@ -182,23 +257,41 @@ useEffect(() => {
 
   // BRISANJE TRANSAKCIJE 
   const handleDeleteTransaction = (id: string, type: 'INCOME' | 'EXPENSE') => {
-    if (userRole === 'GUEST') return;
+  if (userRole === 'GUEST') return;
 
-    setModalConfig({
-      isOpen: true,
-      title: 'Ukloniti stavku?',
-      message: 'Ova akcija će trajno obrisati transakciju iz baze podataka.',
-      onConfirm: async () => {
+  setModalConfig({
+    isOpen: true,
+    title: 'Ukloniti stavku?',
+    message: 'Ova akcija će trajno obrisati transakciju iz baze podataka.',
+    onConfirm: async () => {
+      try {
         const endpoint = type === 'INCOME' ? `/api/incomes?id=${id}` : `/api/expenses?id=${id}`;
         const res = await fetch(endpoint, { method: 'DELETE' });
-        if (res.ok) {
-          if (type === 'INCOME') setIncomes(prev => prev.filter(i => i.id !== id));
-          else setExpenses(prev => prev.filter(e => e.id !== id));
-        }
-      }
-    });
-  };
 
+        if (res.ok) {
+          toast.success('Uspešno obrisano!'); // Dodajemo potvrdu
+
+          // Koristimo dvostruku jednakost (==) ili konvertujemo oba u Number da bismo izbegli problem "12" !== 12
+          if (type === 'INCOME') {
+            setIncomes(prev => prev.filter(i => Number(i.id) !== Number(id)));
+          } else {
+            setExpenses(prev => prev.filter(e => Number(e.id) !== Number(id)));
+          }
+          
+          // Za svaki slučaj, osveži i ostale statuse (bilans, bedževe)
+          const userId = localStorage.getItem('userId');
+          if (userId) loadAllData(userId, userRole);
+          
+        } else {
+          toast.error('Server nije dozvolio brisanje.');
+        }
+      } catch (err) {
+        console.error("Greška pri brisanju:", err);
+        toast.error('Došlo je do greške u komunikaciji sa bazom.');
+      }
+    }
+  });
+};
   // BRISANJE KATEGORIJE
   const deleteCategory = async (id: string) => {
     if (userRole === 'GUEST') return;
@@ -247,10 +340,10 @@ useEffect(() => {
 const handleStartEditTransaction = (t: any) => {
   if (userRole === 'GUEST') return;
   
-  // 1. Postavi mod (INCOME/EXPENSE)
+  // Postavi mod (INCOME/EXPENSE)
   setModalMode(t.type); 
   
-  // 2. Popuni formu podacima iz baze
+  // Popuni formu podacima iz baze
   setFormData({
     description: t.description || '',
     amount: t.amount?.toString() || '',
@@ -258,7 +351,7 @@ const handleStartEditTransaction = (t: any) => {
     categoryId: (t.categoryId || t.category?.id || '').toString()
   });
 
-  // 3. Postavi ID koji kaže "Ovo je edit, a ne novi unos"
+  // Postavi ID koji kaže "Ovo je edit, a ne novi unos"
   setEditingTransactionId(t.id);
   setIsModalOpen(true);
 };
@@ -292,6 +385,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       setIsModalOpen(false);
       setEditingTransactionId(null);
       setFormData({ description: '', amount: '', categoryId: '' });
+      toast('Transakcija uspešna! Progres ciljeva ažuriran.', { icon: '📊' });
       if (userId) loadAllData(userId, userRole);
     } else {
       const errorMsg = await res.text();
@@ -341,7 +435,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
 
     if (res.ok) {
       setIsCatModalOpen(false);
-      setEditingCategoryId(null); // Ovo je ključno da se resetuje!
+      setEditingCategoryId(null); 
       setNewCategory({ name: '', type: 'EXPENSE' });
       
       // Osvežavanje liste
@@ -351,21 +445,70 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
   };
 
   const handleSaveBudget = async (data: { categoryId: string; limit: number }) => {
+      const userId = localStorage.getItem('userId');
+      //Ako nema userId, ne radi ništa (sprečava greške)
+      if (!userId) {
+        toast.error("Korisnik nije pronađen. Molimo prijavite se ponovo.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/budgets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            ...data, 
+          userId: userId})
+        });
+        if (res.ok) {
+          setIsBudgetModalOpen(false);
+          toast.success("Budžet sačuvan!");
+          // Osveži budžete
+          const resBudgets = await fetch(`/api/budgets?userId=${userId}`);
+          setBudgets(await resBudgets.json());
+          loadAllData(userId, userRole);
+        }else {
+          toast.error("Greška pri čuvanju budžeta.");
+        }
+      } catch (err) { 
+          console.error(err); 
+          toast.error("Serverska greška.");
+        }
+  };
+
+ const handleUpdateGoal = async (goalId: number, newAmount: number) => {
+  // 1. PRVO DOHVATI userId (iz localStorage ili odakle ga već uzimaš u Dashboardu)
   const userId = localStorage.getItem('userId');
+
+  // 2. Proveri da li postoji da ne bi pukao kod
+  if (!userId) {
+    console.error("User ID nije pronađen!");
+    return;
+  }
+
   try {
-    const res = await fetch('/api/budgets', {
-      method: 'POST',
+    const res = await fetch('/api/goals', {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, userId: userId ? parseInt(userId) : null })
+      body: JSON.stringify({ 
+        id: goalId, 
+        currentAmount: newAmount,
+        userId: userId // Sada više nije crveno jer je definisano iznad!
+      })
     });
+
     if (res.ok) {
-      setIsBudgetModalOpen(false);
-      // Osveži budžete
-      const resBudgets = await fetch(`/api/budgets?userId=${userId}`);
-      setBudgets(await resBudgets.json());
+      toast.success("Napredak sačuvan! 💰");
+      
+      // Prosleđujemo userId i userRole tvojoj loadAllData funkciji
+      // Proveri samo da li je userRole dostupan (verovatno jeste na vrhu komponente)
+      await loadAllData(userId, userRole); 
     }
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error(err);
+    toast.error("Greška pri ažuriranju.");
+  }
 };
+
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#02040a]">
@@ -382,6 +525,10 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
 
       <main className="p-6 md:p-8 max-w-7xl mx-auto space-y-10 relative pb-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="relative z-10 px-2">
+          <BadgesDisplay badgesString={userBadges} />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
           <StatsCard title="Prihod" amount={totalIncome} type="income" />
@@ -405,6 +552,8 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
     </div>
         </div>
 
+    
+
 <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
   {/* Leva kolona: Grafikoni (zauzima 8 od 12 kolona) */}
   <div className="lg:col-span-8 h-full">
@@ -427,6 +576,12 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
        <SavingsGoals 
           goals={goals} 
           onAddGoal={() => setIsGoalModalOpen(true)} 
+          onUpdate={() => {
+            // Proveravamo da li userId postoji pre nego što pozovemo funkciju
+            const storedId = localStorage.getItem('userId');
+            if (storedId) {
+              loadAllData(storedId, userRole);
+          }}}
        />
     </div>
   </div>

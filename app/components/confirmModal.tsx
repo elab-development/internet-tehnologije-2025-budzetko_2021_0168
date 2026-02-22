@@ -8,6 +8,9 @@ interface ModalProps {
   message: string;
 }
 
+// Komponenta: components/ConfirmModal.tsx
+// Služi za prikazivanje upozorenja i potvrdu destruktivnih akcija (brisanje).
+
 export function ConfirmModal({ isOpen, onClose, onConfirm, title, message }: ModalProps) {
   if (!isOpen) return null;
 
@@ -16,7 +19,8 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, message }: Mod
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={onClose} />
       
       {/* Modal Card */}
-      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 p-10 rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.7)] text-center overflow-hidden">
+      <div className="relative w-full max-w-sm bg-slate-900 border border-slate-800 p-10 rounded-[3rem]
+      shadow-[0_20px_60px_rgba(0,0,0,0.7)] text-center overflow-hidden">
         
         {/* trougao upozorenja */}
         <div className="flex justify-center mb-6">
@@ -55,13 +59,15 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, message }: Mod
             <>
               <button
                 onClick={() => { onConfirm(); onClose(); }}
-                className="w-full py-5 rounded-[1.8rem] bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-[0_0_25px_rgba(225,29,72,0.2)]"
+                className="w-full py-5 rounded-[1.8rem] bg-rose-600 hover:bg-rose-500 text-white text-[10px]
+                font-black uppercase tracking-widest transition-all active:scale-95 shadow-[0_0_25px_rgba(225,29,72,0.2)]"
               >
                 Potvrdi brisanje
               </button>
               <button
                 onClick={onClose}
-                className="w-full py-5 rounded-[1.8rem] bg-slate-800 text-slate-400 hover:bg-slate-700 text-[10px] font-black uppercase tracking-widest transition-all italic"
+                className="w-full py-5 rounded-[1.8rem] bg-slate-800 text-slate-400 hover:bg-slate-700 text-[10px] 
+                font-black uppercase tracking-widest transition-all italic"
               >
                 Odustani
               </button>
@@ -69,7 +75,8 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, message }: Mod
           ) : (
             <button
               onClick={onClose}
-              className="w-full py-5 rounded-[1.8rem] bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_25px_rgba(139,92,246,0.3)]"
+              className="w-full py-5 rounded-[1.8rem] bg-violet-600 hover:bg-violet-500 text-white text-[10px] 
+              font-black uppercase tracking-widest transition-all shadow-[0_0_25px_rgba(139,92,246,0.3)]"
             >
               U redu, razumem
             </button>

@@ -18,33 +18,33 @@ export function GoalModal({ isOpen, onClose, userId, onSuccess }: GoalModalProps
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+      e.preventDefault();
+      setLoading(true);
 
-    try {
-      const res = await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          targetAmount: target,
-          currentAmount: current || 0,
-          userId
-        }),
-      });
+      try {
+        const res = await fetch('/api/goals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            targetAmount: parseFloat(target), // Osiguravamo broj
+            currentAmount: parseFloat(current || '0'), // Osiguravamo broj
+            userId: userId 
+          }),
+        });
 
-      if (res.ok) {
-        setName('');
-        setTarget('');
-        setCurrent('');
-        onSuccess();
-        onClose();
+        if (res.ok) {
+          setName('');
+          setTarget('');
+          setCurrent('');
+          onSuccess(); // Ovo će na Dashboardu pokrenuti loadAllData
+          onClose();
+        }
+      } catch (error) {
+        console.error("Greška pri čuvanju cilja", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Greška pri čuvanju cilja");
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (

@@ -28,17 +28,25 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { categoryId, limit, userId } = body;
+    
+    // Ako TypeScript pravi problem, možeš mu eksplicitno reći šta očekuješ
+    const userId = body.userId;
+    const categoryId = body.categoryId;
+    const limit = body.limit;
 
+    if (!userId) {
+      return NextResponse.json({ error: "UserId nedostaje" }, { status: 400 });
+    }
+
+    // Parsiranje podataka
     const parsedUserId = parseInt(userId);
     const parsedLimit = parseFloat(limit);
     const parsedCategoryId = categoryId === "TOTAL" ? null : parseInt(categoryId);
     
-    // Dobijamo trenutni mesec i godinu
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
-    // Pronađi postojeći budžet za taj userId, kategoriju, mesec i godinu
+    // 1. Provera postojećeg budžeta
     const existing = await prisma.budget.findFirst({
       where: {
         userId: parsedUserId,
@@ -60,10 +68,27 @@ export async function POST(req: Request) {
           limit: parsedLimit,
           userId: parsedUserId,
           categoryId: parsedCategoryId,
-          month: currentMonth, // Šaljemo mesec
-          year: currentYear   // Šaljemo godinu
+          month: currentMonth,
+          year: currentYear
         }
       });
+    }
+
+    // 2. LOGIKA ZA BEDŽ PLANER
+    const user = await prisma.user.findUnique({ 
+      where: { id: parsedUserId } 
+    });
+    
+    // Koristimo opcionalni chaining (?.) da izbegnemo greške ako user ne postoji
+    const currentBadges: string = (user as any)?.badges || "";
+
+    if (user && !currentBadges.includes("PLANER")) {
+      const updated = currentBadges ? `${currentBadges},PLANER` : "PLANER";
+      await prisma.user.update({
+        where: { id: parsedUserId },
+        data: { badges: updated } as any
+      });
+      console.log("🎯 KORISNIK JE POSTAO PLANER!");
     }
 
     return NextResponse.json(result);

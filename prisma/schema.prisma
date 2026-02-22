@@ -26,7 +26,8 @@ model User {
   name      String?
   role      Role     @default(USER)
   createdAt DateTime @default(now())
-
+  badges    String   @default("")
+  
   // Relacije
   expenses     Expense[]
   incomes      Income[]
