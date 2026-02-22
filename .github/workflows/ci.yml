@@ -22,14 +22,15 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    # Pokretanje testova 
+    - name: Generate Prisma Client
+      run: npx prisma generate
+
     - name: Run Tests
       run: npm test || echo "Tests skipped"
 
     - name: Build project
       run: npm run build
 
-  # Docker build 
   docker-stage:
     needs: build-and-test
     runs-on: ubuntu-latest

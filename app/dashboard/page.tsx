@@ -554,38 +554,41 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
 
     
 
-<section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
-  {/* Leva kolona: Grafikoni (zauzima 8 od 12 kolona) */}
-  <div className="lg:col-span-8 h-full">
-    <BudgetCharts transactions={allTransactions} />
-  </div>
+    <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 items-start"> 
+      {/* DODALI SMO: items-start (važno za sticky) */}
 
-  {/* Desna kolona: Tracker-i (zauzima 4 od 12 kolona) */}
-  <div className="lg:col-span-4 flex flex-col gap-8"> 
-    {/* Budžeti kartica */}
-    <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
-       <BudgetTracker 
-          budgets={budgets} 
-          expenses={expenses} 
-          onAddBudget={() => setIsBudgetModalOpen(true)}
-       />
-    </div>
-    
-    {/* Ciljevi kartica */}
-    <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
-       <SavingsGoals 
-          goals={goals} 
-          onAddGoal={() => setIsGoalModalOpen(true)} 
-          onUpdate={() => {
-            // Proveravamo da li userId postoji pre nego što pozovemo funkciju
-            const storedId = localStorage.getItem('userId');
-            if (storedId) {
-              loadAllData(storedId, userRole);
-          }}}
-       />
-    </div>
-  </div>
-</section>
+      {/* Leva kolona: Grafikoni - DODAJEMO STICKY KLASU */}
+      <div className="lg:col-span-8 lg:sticky lg:top-24"> 
+        {/* top-24 je udaljenost od vrha ekrana, prilagodi ako imaš fiksni Navbar */}
+        <BudgetCharts transactions={allTransactions} />
+      </div>
+
+      {/* Desna kolona: Tracker-i - Ostaje ista */}
+      <div className="lg:col-span-4 flex flex-col gap-8"> 
+        {/* Budžeti kartica */}
+        <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
+          <BudgetTracker 
+              budgets={budgets} 
+              expenses={expenses} 
+              onAddBudget={() => setIsBudgetModalOpen(true)}
+          />
+        </div>
+        
+        {/* Ciljevi kartica */}
+        <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
+          <SavingsGoals 
+              goals={goals} 
+              onAddGoal={() => setIsGoalModalOpen(true)} 
+              onUpdate={() => {
+                const storedId = localStorage.getItem('userId');
+                if (storedId) {
+                  loadAllData(storedId, userRole);
+                }
+              }}
+          />
+        </div>
+      </div>
+    </section>
 
         {userRole === 'ADMIN' && users.length > 0 && (
           <section className="bg-slate-900/40 border border-slate-800/50 p-8 md:p-10 rounded-[3rem] relative shadow-2xl backdrop-blur-md">
