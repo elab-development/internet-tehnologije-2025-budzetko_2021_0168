@@ -25,6 +25,7 @@ export async function GET(
       name: user.name,
       email: user.email,
       role: user.role,
+      balance: (user as any).balance || 0,
       badges: (user as any).badges || "" 
     };
  

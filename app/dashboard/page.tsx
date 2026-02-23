@@ -77,29 +77,19 @@ export default function DashboardPage() {
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [goals, setGoals] = useState<any[]>([]);
+  const totalIncome = incomes.reduce((s, i: any) => s + (Number(i.amount) || 0), 0);
+  const totalExpense = expenses.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
+  const totalSaved = goals.reduce((s, g: any) => s + (Number(g.currentAmount) || 0), 0);
+  const finalBalance = totalIncome - totalExpense - totalSaved;
 
 useEffect(() => {
-  // Pravimo pomoćnu async funkciju unutar useEffect-a
   const initDashboard = async () => {
     const userId = localStorage.getItem('userId');
     const storedName = localStorage.getItem('userName');
     const storedRole = localStorage.getItem('userRole'); 
 
-    if (userId) {
-      try {
-        const resBudgets = await fetch(`/api/budgets?userId=${userId}`);
-        const dataBudgets = await resBudgets.json();
-        setBudgets(dataBudgets);
-
-        const resGoals = await fetch(`/api/goals?userId=${userId}`);
-        const dataGoals = await resGoals.json();
-        if (Array.isArray(dataGoals)) setGoals(dataGoals);
-      } catch (err) {
-        console.error("Greška pri učitavanju budžeta:", err);
-      }
-    }
-    
     if (!userId) {
+      // Logika za gosta
       setCurrentUserId(null);
       setUserName('Gost');
       setUserRole('GUEST'); 
@@ -109,14 +99,17 @@ useEffect(() => {
       setGoals([]);
       setLoading(false);
     } else {
+      // Logika za ulogovanog korisnika 
       setCurrentUserId(userId);
       setUserName(storedName || 'Korisnik');
       setUserRole(storedRole || 'USER');
+      
+      // Samo jedan poziv koji vuče SVE: prihode, troškove, ciljeve i budžete
       loadAllData(userId, storedRole || 'USER');
     }
   };
 
-  initDashboard(); // Pozivamo funkciju
+  initDashboard();
 }, []);
 
   const fetchGoals = async () => {
@@ -152,6 +145,8 @@ useEffect(() => {
       
       if (resUser.ok) {
       const userData = await resUser.json();
+      //const currentBalance = Number(userData.balance);
+      //setBalance(userData.balance || 0);
       const newBadges = userData.badges || "";
 
         if (userBadges && userData.badges && userData.badges.length > userBadges.length) {
@@ -178,6 +173,7 @@ useEffect(() => {
       if (resBudgets.ok) {
         const dataBudgets = await resBudgets.json();
         setBudgets(dataBudgets);
+        
 
         dataBudgets.forEach((budget: any) => {
           const spent = expenses
@@ -252,8 +248,6 @@ useEffect(() => {
     });
   }, [allTransactions, searchTerm, activeTab]);
 
-  const totalIncome = incomes.reduce((s, i: any) => s + (Number(i.amount) || 0), 0);
-  const totalExpense = expenses.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
 
   // BRISANJE TRANSAKCIJE 
   const handleDeleteTransaction = (id: string, type: 'INCOME' | 'EXPENSE') => {
@@ -502,6 +496,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       // Prosleđujemo userId i userRole tvojoj loadAllData funkciji
       // Proveri samo da li je userRole dostupan (verovatno jeste na vrhu komponente)
       await loadAllData(userId, userRole); 
+      router.refresh();
     }
   } catch (err) {
     console.error(err);
@@ -531,9 +526,9 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
-          <StatsCard title="Prihod" amount={totalIncome} type="income" />
-          <StatsCard title="Trošak" amount={totalExpense} type="expense" />
-          <StatsCard title="Bilans" amount={totalIncome - totalExpense} type="balance" />
+          <StatsCard title="Prihod" amount={totalIncome || 0} type="income" />
+          <StatsCard title="Trošak" amount={totalExpense || 0} type="expense" />
+          <StatsCard title="Bilans" amount={finalBalance} type="balance" />
 
     <div className="bg-slate-900/40 border border-violet-500/20 p-6 rounded-[2rem] backdrop-blur-md shadow-2xl hover:border-violet-500/50 transition-all group">
       <div className="flex justify-between items-start mb-4">
@@ -720,7 +715,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       {/* MODALI */}
       <CategoryModal
         isOpen={isCatModalOpen}
-        isEditing={Boolean(editingCategoryId)} // DODAJ OVU LINIJU
+        isEditing={Boolean(editingCategoryId)} 
         onClose={() => {
           setIsCatModalOpen(false);
           setEditingCategoryId(null); // Resetuj ID kad zatvoriš

@@ -31,7 +31,15 @@ export async function POST(req: Request) {
         userId: parsedUserId,
       }
     });
-
+    // Smanjivanje bilansa pri kreiranju novog cilja
+    /*if (result.currentAmount > 0) {
+      await prisma.user.update({
+        where: { id: parsedUserId },
+        data: { 
+          balance: { decrement: result.currentAmount } 
+        } as any
+      });
+    }*/
     // --- LOGIKA ZA BEDŽEVE ---
     const user = await prisma.user.findUnique({ where: { id: parsedUserId } });
     let currentBadges = (user as any)?.badges || "";
@@ -71,24 +79,54 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { id, currentAmount, userId } = body;
 
-    const updatedGoal = await prisma.savingsGoal.update({
-      where: { id: parseInt(id) },
-      data: { currentAmount: parseFloat(currentAmount) },
+    const parsedGoalId = parseInt(id);
+    const parsedUserId = parseInt(userId);
+    const noviIznos = parseFloat(currentAmount);
+
+    // Prvo uzimamo stari iznos cilja da vidimo kolika je razlika
+    const oldGoal = await prisma.savingsGoal.findUnique({
+      where: { id: parsedGoalId }
     });
 
+    if (!oldGoal) return NextResponse.json({ error: "Cilj nije pronađen" }, { status: 404 });
+
+    const razlika = noviIznos - oldGoal.currentAmount;
+
+    // Ažuriramo cilj
+    const updatedGoal = await prisma.savingsGoal.update({
+      where: { id: parsedGoalId },
+      data: { currentAmount: noviIznos },
+    });
+
+    // AUTOMATSKI SMANJUJEMO BILANS KORISNIKA ZA RAZLIKU
+    // Ako je korisnik dodao 1000 na štednju, bilans mu se smanjuje za 1000
+    if (razlika !== 0) {
+      await prisma.user.update({
+        where: { id: parsedUserId },
+        data: { 
+          balance: { 
+            decrement: razlika 
+          } 
+        } as any, 
+      });
+      console.log(`📉 Bilans smanjen za: ${razlika}`);
+    }
+
+    // --- LOGIKA ZA BEDŽEVE ---
     if (updatedGoal.currentAmount >= updatedGoal.targetAmount) {
-      const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+      const user = await prisma.user.findUnique({ where: { id: parsedUserId } });
       const currentBadges = (user as any)?.badges || "";
 
       if (user && !currentBadges.includes("STEDISA")) {
         const updatedBadges = currentBadges ? `${currentBadges},STEDISA` : "STEDISA";
         await prisma.user.update({
-          where: { id: parseInt(userId) },
+          where: { id: parsedUserId },
           data: { badges: updatedBadges } as any,
         });
         console.log("🎯 KORISNIK JE POSTAO ŠTEDIŠA!");
       }
     }
+
     return NextResponse.json(updatedGoal);
   } catch (error) {
     console.error(error);
