@@ -7,7 +7,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// DEFINICIJA TIPOVA
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  password     String
+  name         String?
+  role         Role          @default(USER)
+  createdAt    DateTime      @default(now())
+  badges       String        @default("")
+  budgets      Budget[]
+  categories   Category[]
+  expenses     Expense[]
+  incomes      Income[]
+  savingsGoals SavingsGoal[]
+}
+
+model Category {
+  id       Int             @id @default(autoincrement())
+  name     String
+  type     TransactionType
+  icon     String?
+  userId   Int
+  budgets  Budget[]
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+  incomes  Income[]
+
+  @@unique([name, userId])
+  @@index([userId], map: "Category_userId_fkey")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now())
+  userId      Int
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId], map: "Expense_categoryId_fkey")
+  @@index([userId], map: "Expense_userId_fkey")
+}
+
+model Income {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now())
+  userId      Int
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId], map: "Income_categoryId_fkey")
+  @@index([userId], map: "Income_userId_fkey")
+}
+
+model Budget {
+  id         Int       @id @default(autoincrement())
+  limit      Float
+  month      Int       @default(1)
+  year       Int       @default(2026)
+  userId     Int
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId], map: "Budget_categoryId_fkey")
+  @@index([userId], map: "Budget_userId_fkey")
+}
+
+model SavingsGoal {
+  id            Int       @id @default(autoincrement())
+  name          String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  deadline      DateTime?
+  createdAt     DateTime  @default(now())
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "SavingsGoal_userId_fkey")
+}
+
 enum Role {
   USER
   ADMIN
@@ -16,94 +100,4 @@ enum Role {
 enum TransactionType {
   INCOME
   EXPENSE
-}
-
-// 1. KORISNIK
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  badges    String   @default("")
-  
-  // Relacije
-  expenses     Expense[]
-  incomes      Income[]
-  categories   Category[]
-  budgets      Budget[]
-  savingsGoals SavingsGoal[]
-}
-
-// 2. KATEGORIJA
-model Category {
-  id      Int             @id @default(autoincrement())
-  name    String
-  type    TransactionType
-  icon    String?
-  
-  userId  Int
-  user    User           @relation(fields: [userId], references: [id])
-
-  expenses Expense[]
-  incomes  Income[]
-  budgets  Budget[] // Povezano može se postaviti budžet po kategoriji
-
-  @@unique([name, userId])
-}
-
-// 3. TROŠAK
-model Expense {
-  id          Int      @id @default(autoincrement())
-  amount      Float
-  description String?
-  createdAt   DateTime @default(now())
-
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
-
-  categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id])
-}
-
-// 4. PRIHOD
-model Income {
-  id          Int      @id @default(autoincrement())
-  amount      Float
-  description String?
-  createdAt   DateTime @default(now())
-
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
-
-  categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id])
-}
-
-// 5. BUDŽET 
-model Budget {
-  id         Int      @id @default(autoincrement())
-  limit      Float    
-  month      Int       @default(1) 
-  year       Int       @default(2026)
-
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-
-  categoryId Int?
-  category   Category? @relation(fields: [categoryId], references: [id])
-}
-
-// 6. CILJEVI ŠTEDNJE (NOVO)
-model SavingsGoal {
-  id            Int       @id @default(autoincrement())
-  name          String  
-  targetAmount  Float    
-  currentAmount Float     @default(0) 
-  deadline      DateTime?
-  createdAt     DateTime  @default(now())
-
-  userId        Int
-  user          User      @relation(fields: [userId], references: [id])
 }
