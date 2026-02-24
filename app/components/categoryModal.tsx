@@ -2,9 +2,11 @@
 
 interface Props {
   isOpen: boolean;
+  isEditing: boolean;
   onClose: () => void;
   onSave: (e: React.FormEvent) => void;
-  newCategory: { name: string; type: 'INCOME' | 'EXPENSE' } | undefined | null;
+  // Dodat 'id?: any' kako bi TypeScript dozvolio proveru za edit mod
+  newCategory: { id?: any; name: string; type: 'INCOME' | 'EXPENSE' } | undefined | null;
   setNewCategory: (data: any) => void;
 }
 
@@ -34,7 +36,8 @@ export function CategoryModal({ isOpen, onClose, onSave, newCategory, setNewCate
         <div className="p-8">
           <div className="mb-8 text-center">
             <h2 className="text-xl font-black text-slate-100 italic uppercase tracking-tighter">
-              Nova Kategorija
+              {/* Sada TypeScript zna da id može da postoji */}
+              {newCategory?.id ? 'Izmeni Kategoriju' : 'Nova Kategorija'} 
             </h2>
           </div>
 

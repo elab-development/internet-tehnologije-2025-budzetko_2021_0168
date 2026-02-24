@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getUserAvatar } from '@/lib/avatarApi'; 
 
 interface NavbarProps {
   userName: string;
@@ -54,9 +55,12 @@ export function Navbar({ userName, userRole }: NavbarProps) {
                 </span>
               </div>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[11px] font-black text-slate-300 shadow-inner group-hover:scale-105 group-hover:border-violet-500/50 group-hover:text-white transition-all">
-                {userName?.charAt(0).toUpperCase()}
-              </div>
+
+              <img 
+                src={getUserAvatar(userName)} 
+                alt="Avatar"
+                className="w-9 h-9 rounded-xl border border-slate-700 object-cover shadow-inner group-hover:scale-105 group-hover:border-violet-500/50 transition-all"
+              />
             </Link>
 
             <button

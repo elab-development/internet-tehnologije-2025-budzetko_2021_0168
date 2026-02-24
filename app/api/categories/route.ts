@@ -1,51 +1,23 @@
 import { NextResponse } from 'next/server';
-import { prisma } from "@/lib/prisma"; // Koristi postojeću instancu
+import { prisma } from "@/lib/prisma";
 
-// ČITANJE KATEGORIJA (nase + sistemske + Auto-seed)
+// ČITANJE KATEGORIJA
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 
-    // AUTO-SEED: Provera i dodavanje osnovnih kategorija ako ih nema
-    const defaultCategories = [
-      { name: 'Hrana 🍔', type: 'EXPENSE' },
-      { name: 'Plata 💵', type: 'INCOME' },
-      { name: 'Stanarina 🏠', type: 'EXPENSE' },
-      { name: 'Prevoz 🚌', type: 'EXPENSE' },
-      { name: 'Zabava 🥂', type: 'EXPENSE' }
-    ];
-
-    for (const cat of defaultCategories) {
-      const existing = await prisma.category.findFirst({
-        where: { name: cat.name, userId: null }
-      });
-
-      if (!existing) {
-        await prisma.category.create({
-          data: {
-            name: cat.name,
-            type: cat.type as any,
-            userId: null
-          }
-        });
-      }
+    if (!userId) {
+      return NextResponse.json({ error: "UserId je obavezan" }, { status: 400 });
     }
 
-    // Čitanje svih dostupnih kategorija
     const categories = await prisma.category.findMany({
-      where: {
-        OR: [
-          { userId: null }, // Sistemske
-          { userId: userId ? parseInt(userId) : undefined } // Korisnikove
-        ]
-      },
+      where: { userId: parseInt(userId) },
       orderBy: { name: 'asc' }
     });
     
     return NextResponse.json(categories);
   } catch (error) {
-    console.error("GET Error:", error);
     return NextResponse.json({ error: "Greška pri učitavanju!" }, { status: 500 });
   }
 }
@@ -56,11 +28,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, type, userId } = body;
 
+    if (!userId) return NextResponse.json({ error: "Korisnik nije ulogovan" }, { status: 400 });
+
     const newCategory = await prisma.category.create({
       data: {
         name,
         type,
-        userId: userId ? parseInt(userId) : null
+        userId: parseInt(userId)
       }
     });
     return NextResponse.json(newCategory);
@@ -69,7 +43,7 @@ export async function POST(req: Request) {
   }
 }
 
-// BRISANJE KATEGORIJE
+// BRISANJE KATEGORIJE 
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -78,21 +52,38 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
 
     await prisma.category.delete({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) } // Koristimo parseInt
     });
 
     return NextResponse.json({ message: "Obrisano!" });
   } catch (error: any) {
-    console.error("DELETE Error:", error);
-    
-    // Provera specifične Prisma greške za relacije (Foreign Key constraint)
     if (error.code === 'P2003') {
       return NextResponse.json(
         { error: "Ne možete obrisati kategoriju koja se koristi. Prvo obrišite transakcije u njoj." },
         { status: 400 }
       );
     }
-
     return NextResponse.json({ error: "Došlo je do greške na serveru!" }, { status: 500 });
+  }
+}
+
+// IZMENA KATEGORIJE
+export async function PATCH(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const { name, type } = await req.json();
+
+    if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
+
+    const updated = await prisma.category.update({
+      where: { id: parseInt(id) }, // OBAVEZNO parseInt ako je u bazi Int
+      data: { name, type }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("PATCH Error:", error);
+    return NextResponse.json({ error: "Greška pri ažuriranju" }, { status: 500 });
   }
 }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Budzetko API - Swagger</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script>
+        window.onload = () => {
+            window.ui = SwaggerUIBundle({
+                spec: {
+                    openapi: "3.0.0",
+                    info: { title: "Budzetko API", version: "1.0.0" },
+                    paths: {
+                        "/api/expenses": {
+                            "get": { "summary": "Lista svih troškova", "responses": { "200": { "description": "OK" } } },
+                            "post": { "summary": "Dodaj novi trošak", "responses": { "201": { "description": "Kreirano" } } }
+                        },
+                        "/api/auth/login": {
+                            "post": { "summary": "Logovanje", "responses": { "200": { "description": "Uspešno" } } }
+                        }
+                    }
+                },
+                dom_id: '#swagger-ui',
+            });
+        };
+    </script>
+</body>
+</html>

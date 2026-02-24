@@ -10,19 +10,33 @@ import { CategoryModal } from "../components/categoryModal";
 import { BudgetCharts } from "../components/charts";
 import { QuickActions } from "../components/quickActions"; 
 import { ConfirmModal } from "../components/confirmModal"; 
+import { getExchangeRate } from '@/lib/exchangeApi';
+import { BudgetTracker } from "../components/BudgetTracker";
+import { BudgetModal } from "../components/budgetModal";
+import { SavingsGoals } from "../components/SavingsGoals";
+import { GoalModal } from "../components/GoalModal";
+import { BadgesDisplay } from "../components/BadgesDisplay";
+import { toast } from 'react-hot-toast';
+
 
 const DEMO_DATA = {
   expenses: [
-    { id: 'd1', description: 'Primer: Stanarina', amount: 35000, createdAt: new Date().toISOString(), category: { name: 'Stanovanje' }, type: 'EXPENSE' },
-    { id: 'd2', description: 'Primer: Namirnice', amount: 4500, createdAt: new Date().toISOString(), category: { name: 'Hrana' }, type: 'EXPENSE' }
+    { id: 'd1', description: 'Mesečna kirija - Stan', amount: 450, createdAt: new Date().toISOString(), category: { name: 'Stanovanje', icon: '🏠' }, type: 'EXPENSE' },
+    { id: 'd2', description: 'Maxi - Nedeljna nabavka', amount: 5500, createdAt: new Date().toISOString(), category: { name: 'Hrana', icon: '🍔' }, type: 'EXPENSE' },
+    { id: 'd3', description: 'Mesečna karta BusPlus', amount: 3000, createdAt: new Date(Date.now() - 86400000).toISOString(), category: { name: 'Prevoz', icon: '🚌' }, type: 'EXPENSE' },
+    { id: 'd4', description: 'Netflix pretplata', amount: 1200, createdAt: new Date(Date.now() - 172800000).toISOString(), category: { name: 'Zabava', icon: '🎭' }, type: 'EXPENSE' }
   ],
   incomes: [
-    { id: 'i1', description: 'Primer: Plata', amount: 95000, createdAt: new Date().toISOString(), category: { name: 'Posao' }, type: 'INCOME' }
+    { id: 'i1', description: 'Plata - Januar', amount: 120000, createdAt: new Date().toISOString(), category: { name: 'Posao', icon: '💵' }, type: 'INCOME' },
+    { id: 'i2', description: 'Bonus za projekat', amount: 15000, createdAt: new Date(Date.now() - 432000000).toISOString(), category: { name: 'Honorara', icon: '💰' }, type: 'INCOME' }
   ],
   categories: [
-    { id: 'c1', name: 'Hrana', type: 'EXPENSE' },
-    { id: 'c2', name: 'Stanovanje', type: 'EXPENSE' },
-    { id: 'c3', name: 'Posao', type: 'INCOME' }
+    { id: 'c1', name: 'Hrana', type: 'EXPENSE', icon: '🍔' },
+    { id: 'c2', name: 'Stanovanje', type: 'EXPENSE', icon: '🏠' },
+    { id: 'c3', name: 'Prevoz', type: 'EXPENSE', icon: '🚌' },
+    { id: 'c4', name: 'Zabava', type: 'EXPENSE', icon: '🎭' },
+    { id: 'c5', name: 'Posao', type: 'INCOME', icon: '💵' },
+    { id: 'c6', name: 'Honorara', type: 'INCOME', icon: '💰' }
   ]
 };
 
@@ -32,6 +46,8 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('USER'); 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [budgets, setBudgets] = useState<any[]>([]);
+  const [userBadges, setUserBadges] = useState<string>('');
   
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -52,47 +68,167 @@ export default function DashboardPage() {
   const [newCategory, setNewCategory] = useState({ name: '', type: 'EXPENSE' as 'INCOME' | 'EXPENSE' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false); 
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [modalMode, setModalMode] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
   const [formData, setFormData] = useState({ description: '', amount: '', categoryId: '' });
 
-  useEffect(() => {
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [goals, setGoals] = useState<any[]>([]);
+  const totalIncome = incomes.reduce((s, i: any) => s + (Number(i.amount) || 0), 0);
+  const totalExpense = expenses.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
+  const totalSaved = goals.reduce((s, g: any) => s + (Number(g.currentAmount) || 0), 0);
+  const finalBalance = totalIncome - totalExpense - totalSaved;
+
+useEffect(() => {
+  const initDashboard = async () => {
     const userId = localStorage.getItem('userId');
     const storedName = localStorage.getItem('userName');
     const storedRole = localStorage.getItem('userRole'); 
-    
+
     if (!userId) {
+      // Logika za gosta
       setCurrentUserId(null);
       setUserName('Gost');
       setUserRole('GUEST'); 
       setExpenses(DEMO_DATA.expenses);
       setIncomes(DEMO_DATA.incomes);
       setCategories(DEMO_DATA.categories);
+      setGoals([]);
       setLoading(false);
     } else {
+      // Logika za ulogovanog korisnika 
       setCurrentUserId(userId);
       setUserName(storedName || 'Korisnik');
       setUserRole(storedRole || 'USER');
+      
+      // Samo jedan poziv koji vuče SVE: prihode, troškove, ciljeve i budžete
       loadAllData(userId, storedRole || 'USER');
     }
-  }, [router]);
+  };
+
+  initDashboard();
+}, []);
+
+  const fetchGoals = async () => {
+    if (!currentUserId) return; // Provera da li imamo ID
+    try {
+      const response = await fetch(`/api/goals?userId=${currentUserId}`); 
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setGoals(data);
+      }
+    } catch (error) {
+      console.error("Greška pri osvežavanju ciljeva:", error);
+    }
+  };
 
   const loadAllData = async (userId: string, role: string) => {
     try {
-      const [resExp, resInc, resCat] = await Promise.all([
+      const rate = await getExchangeRate("EUR");
+      setExchangeRate(rate);
+
+      const [resExp, resInc, resCat, resGoals, resUser, resBudgets] = await Promise.all([
         fetch(`/api/expenses?userId=${userId}`),
         fetch(`/api/incomes?userId=${userId}`),
-        fetch(`/api/categories?userId=${userId}`) 
+        fetch(`/api/categories?userId=${userId}`),
+        fetch(`/api/goals?userId=${userId}`),
+        fetch(`/api/user/${userId}`),
+        fetch(`/api/budgets?userId=${userId}`)
       ]);
       
       if (resExp.ok) setExpenses(await resExp.json());
       if (resInc.ok) setIncomes(await resInc.json());
       if (resCat.ok) setCategories(await resCat.json());
+      
+      if (resUser.ok) {
+      const userData = await resUser.json();
+      //const currentBalance = Number(userData.balance);
+      //setBalance(userData.balance || 0);
+      const newBadges = userData.badges || "";
+
+        if (userBadges && userData.badges && userData.badges.length > userBadges.length) {
+        toast.success('🎉 ČESTITAMO! Osvojili ste novi bedž!', {
+          duration: 5000,
+          position: 'top-right',
+          icon: '🏆',
+          style: {
+            borderRadius: '10px',
+            background: '#1e1b4b',
+            color: '#fff',
+            border: '1px solid #8b5cf6'
+          },
+        });
+      }
+        setUserBadges(newBadges);
+      }
+      if (resGoals.ok) {
+        const gData = await resGoals.json();
+        if (Array.isArray(gData)) setGoals(gData);
+      }
+
+      // --- PAMETNE NOTIFIKACIJE ZA BUDŽET (3 NIVOA) ---
+      if (resBudgets.ok) {
+        const dataBudgets = await resBudgets.json();
+        setBudgets(dataBudgets);
+        
+
+        dataBudgets.forEach((budget: any) => {
+          const spent = expenses
+            .filter((e: any) => Number(e.categoryId) === Number(budget.categoryId))
+            .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+
+          const percent = (spent / budget.limit) * 100;
+
+          // 1. SCENARIO: LIMIT PREKORAČEN (Preko 100%)
+          if (percent >= 100) {
+            toast.error(`LIMIT PREKORAČEN: ${budget.category?.name}!`, {
+              duration: 8000,
+              icon: '🚨',
+              style: {
+                background: '#450a0a',
+                color: '#fff',
+                border: '2px solid #f43f5e',
+                boxShadow: '0 0 20px rgba(244, 63, 94, 0.4)',
+              },
+            });
+          } 
+          // 2. SCENARIO: SKORO POTROŠENO (Preko 90%)
+          else if (percent >= 90) {
+            toast(`Oprez: Potrošili ste ${percent.toFixed(0)}% budžeta za ${budget.category?.name}!`, {
+              icon: '⚠️',
+              style: {
+                background: '#1e1b4b',
+                color: '#fbbf24',
+                border: '1px solid #fbbf24',
+              },
+            });
+          }
+          // 3. NOVO - SCENARIO: POLOVINA BUDŽETA (Preko 50%)
+          else if (percent >= 50) {
+            toast(`Na pola ste budžeta za ${budget.category?.name}.`, {
+              icon: 'ℹ️',
+              style: {
+                background: '#0f172a',
+                color: '#a78bfa',
+                border: '1px solid #7c3aed',
+              },
+            });
+          }
+        });
+      }
 
       if (role === 'ADMIN') {
         const resUsers = await fetch('/api/user');
         if (resUsers.ok) setUsers(await resUsers.json());
       }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const allTransactions = useMemo(() => {
@@ -112,28 +248,44 @@ export default function DashboardPage() {
     });
   }, [allTransactions, searchTerm, activeTab]);
 
-  const totalIncome = incomes.reduce((s, i: any) => s + (Number(i.amount) || 0), 0);
-  const totalExpense = expenses.reduce((s, e: any) => s + (Number(e.amount) || 0), 0);
 
   // BRISANJE TRANSAKCIJE 
   const handleDeleteTransaction = (id: string, type: 'INCOME' | 'EXPENSE') => {
-    if (userRole === 'GUEST') return;
+  if (userRole === 'GUEST') return;
 
-    setModalConfig({
-      isOpen: true,
-      title: 'Ukloniti stavku?',
-      message: 'Ova akcija će trajno obrisati transakciju iz baze podataka.',
-      onConfirm: async () => {
+  setModalConfig({
+    isOpen: true,
+    title: 'Ukloniti stavku?',
+    message: 'Ova akcija će trajno obrisati transakciju iz baze podataka.',
+    onConfirm: async () => {
+      try {
         const endpoint = type === 'INCOME' ? `/api/incomes?id=${id}` : `/api/expenses?id=${id}`;
         const res = await fetch(endpoint, { method: 'DELETE' });
-        if (res.ok) {
-          if (type === 'INCOME') setIncomes(prev => prev.filter(i => i.id !== id));
-          else setExpenses(prev => prev.filter(e => e.id !== id));
-        }
-      }
-    });
-  };
 
+        if (res.ok) {
+          toast.success('Uspešno obrisano!'); // Dodajemo potvrdu
+
+          // Koristimo dvostruku jednakost (==) ili konvertujemo oba u Number da bismo izbegli problem "12" !== 12
+          if (type === 'INCOME') {
+            setIncomes(prev => prev.filter(i => Number(i.id) !== Number(id)));
+          } else {
+            setExpenses(prev => prev.filter(e => Number(e.id) !== Number(id)));
+          }
+          
+          // Za svaki slučaj, osveži i ostale statuse (bilans, bedževe)
+          const userId = localStorage.getItem('userId');
+          if (userId) loadAllData(userId, userRole);
+          
+        } else {
+          toast.error('Server nije dozvolio brisanje.');
+        }
+      } catch (err) {
+        console.error("Greška pri brisanju:", err);
+        toast.error('Došlo je do greške u komunikaciji sa bazom.');
+      }
+    }
+  });
+};
   // BRISANJE KATEGORIJE
   const deleteCategory = async (id: string) => {
     if (userRole === 'GUEST') return;
@@ -179,24 +331,65 @@ export default function DashboardPage() {
       }
     });
   };
+const handleStartEditTransaction = (t: any) => {
+  if (userRole === 'GUEST') return;
+  
+  // Postavi mod (INCOME/EXPENSE)
+  setModalMode(t.type); 
+  
+  // Popuni formu podacima iz baze
+  setFormData({
+    description: t.description || '',
+    amount: t.amount?.toString() || '',
+    // Proveravamo oba mesta gde ID kategorije može biti sakriven
+    categoryId: (t.categoryId || t.category?.id || '').toString()
+  });
 
-  const handleSaveTransaction = async (e: React.FormEvent) => {
-    if (userRole === 'GUEST') return;
-    e.preventDefault();
-    const userId = localStorage.getItem('userId');
-    const endpoint = modalMode === 'INCOME' ? '/api/incomes' : '/api/expenses';
-    const finalCategoryId = formData.categoryId || categories.find(c => c.type === modalMode)?.id;
+  // Postavi ID koji kaže "Ovo je edit, a ne novi unos"
+  setEditingTransactionId(t.id);
+  setIsModalOpen(true);
+};
+const handleSaveTransaction = async (e: React.FormEvent) => {
+  if (userRole === 'GUEST') return;
+  e.preventDefault();
+  
+  const userId = localStorage.getItem('userId');
+  const isEditing = Boolean(editingTransactionId); // Provera da li editujemo
+
+  const method = isEditing ? 'PATCH' : 'POST';
+  
+  // Endpoint mora imati ID u URL-u ako je PATCH
+  const baseUrl = modalMode === 'INCOME' ? '/api/incomes' : '/api/expenses';
+  const endpoint = isEditing ? `${baseUrl}?id=${editingTransactionId}` : baseUrl;
+
+  try {
     const res = await fetch(endpoint, {
-      method: 'POST',
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, userId, categoryId: finalCategoryId })
+      body: JSON.stringify({ 
+        description: formData.description,
+        amount: parseFloat(formData.amount), // Mora biti Float/Number
+        categoryId: parseInt(formData.categoryId), // Mora biti Int/Number
+        userId: userId ? parseInt(userId) : null
+      })
     });
+
     if (res.ok) {
+      // Uspeh - zatvori i očisti
       setIsModalOpen(false);
+      setEditingTransactionId(null);
       setFormData({ description: '', amount: '', categoryId: '' });
+      toast('Transakcija uspešna! Progres ciljeva ažuriran.', { icon: '📊' });
       if (userId) loadAllData(userId, userRole);
+    } else {
+      const errorMsg = await res.text();
+      console.error("Server Error:", errorMsg);
+      alert("Greška sa servera: " + errorMsg);
     }
-  };
+  } catch (err) {
+    console.error("Fetch Error:", err);
+  }
+};
 
   const updateUserRole = async (userId: number, newRole: string) => {
     const res = await fetch('/api/user', {
@@ -210,22 +403,107 @@ export default function DashboardPage() {
     }
   };
 
-  const handleAddCategory = async (e: React.FormEvent) => {
+  const handleStartEditCategory = (cat: any) => {
+    if (userRole === 'GUEST') return;
+    setNewCategory({ name: cat.name, type: cat.type });
+    setEditingCategoryId(cat.id);
+    setIsCatModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
     if (userRole === 'GUEST') return;
     e.preventDefault();
     const userId = localStorage.getItem('userId');
-    const res = await fetch('/api/categories', {
-      method: 'POST',
+    
+    // Ako imamo editingCategoryId, koristimo PATCH, inače POST
+    const method = editingCategoryId ? 'PATCH' : 'POST';
+    const endpoint = editingCategoryId 
+      ? `/api/categories?id=${editingCategoryId}` 
+      : '/api/categories';
+
+    const res = await fetch(endpoint, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...newCategory, userId })
     });
+
     if (res.ok) {
       setIsCatModalOpen(false);
+      setEditingCategoryId(null); 
       setNewCategory({ name: '', type: 'EXPENSE' });
+      
+      // Osvežavanje liste
       const resCat = await fetch(`/api/categories?userId=${userId}`);
       if (resCat.ok) setCategories(await resCat.json());
     }
   };
+
+  const handleSaveBudget = async (data: { categoryId: string; limit: number }) => {
+      const userId = localStorage.getItem('userId');
+      //Ako nema userId, ne radi ništa (sprečava greške)
+      if (!userId) {
+        toast.error("Korisnik nije pronađen. Molimo prijavite se ponovo.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/budgets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            ...data, 
+          userId: userId})
+        });
+        if (res.ok) {
+          setIsBudgetModalOpen(false);
+          toast.success("Budžet sačuvan!");
+          // Osveži budžete
+          const resBudgets = await fetch(`/api/budgets?userId=${userId}`);
+          setBudgets(await resBudgets.json());
+          loadAllData(userId, userRole);
+        }else {
+          toast.error("Greška pri čuvanju budžeta.");
+        }
+      } catch (err) { 
+          console.error(err); 
+          toast.error("Serverska greška.");
+        }
+  };
+
+ const handleUpdateGoal = async (goalId: number, newAmount: number) => {
+  // 1. PRVO DOHVATI userId (iz localStorage ili odakle ga već uzimaš u Dashboardu)
+  const userId = localStorage.getItem('userId');
+
+  // 2. Proveri da li postoji da ne bi pukao kod
+  if (!userId) {
+    console.error("User ID nije pronađen!");
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/goals', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        id: goalId, 
+        currentAmount: newAmount,
+        userId: userId // Sada više nije crveno jer je definisano iznad!
+      })
+    });
+
+    if (res.ok) {
+      toast.success("Napredak sačuvan! 💰");
+      
+      // Prosleđujemo userId i userRole tvojoj loadAllData funkciji
+      // Proveri samo da li je userRole dostupan (verovatno jeste na vrhu komponente)
+      await loadAllData(userId, userRole); 
+      router.refresh();
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Greška pri ažuriranju.");
+  }
+};
+
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#02040a]">
@@ -240,14 +518,72 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#02040a] text-slate-100 selection:bg-violet-500/30 font-sans">
       <Navbar userName={userName} userRole={userRole} />
 
-      <main className="p-6 md:p-8 max-w-7xl mx-auto space-y-10 relative pb-32 overflow-hidden">
+      <main className="p-6 md:p-8 max-w-7xl mx-auto space-y-10 relative pb-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-          <StatsCard title="Prihod" amount={totalIncome} type="income" />
-          <StatsCard title="Trošak" amount={totalExpense} type="expense" />
-          <StatsCard title="Bilans" amount={totalIncome - totalExpense} type="balance" />
+        <div className="relative z-10 px-2">
+          <BadgesDisplay badgesString={userBadges} />
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
+          <StatsCard title="Prihod" amount={totalIncome || 0} type="income" />
+          <StatsCard title="Trošak" amount={totalExpense || 0} type="expense" />
+          <StatsCard title="Bilans" amount={finalBalance} type="balance" />
+
+    <div className="bg-slate-900/40 border border-violet-500/20 p-6 rounded-[2rem] backdrop-blur-md shadow-2xl hover:border-violet-500/50 transition-all group">
+      <div className="flex justify-between items-start mb-4">
+        <span className="p-2 bg-violet-500/10 rounded-lg border border-violet-500/20 text-violet-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M15 9H9"/><path d="M15 15H9"/></svg>
+        </span>
+        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">External API</span>
+      </div>
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-tight mb-1">Vrednost u EUR</h3>
+      <p className="text-2xl font-black text-white italic">
+        {exchangeRate ? ((totalIncome - totalExpense) * exchangeRate).toFixed(2) : "0.00"} €
+      </p>
+      <p className="text-[9px] text-violet-500/60 font-bold mt-2 truncate">
+        Kurs: 1 RSD = {exchangeRate?.toFixed(5)} EUR
+      </p>
+    </div>
+        </div>
+
+    
+
+    <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 items-start"> 
+      {/* DODALI SMO: items-start (važno za sticky) */}
+
+      {/* Leva kolona: Grafikoni - DODAJEMO STICKY KLASU */}
+      <div className="lg:col-span-8 lg:sticky lg:top-24"> 
+        {/* top-24 je udaljenost od vrha ekrana, prilagodi ako imaš fiksni Navbar */}
+        <BudgetCharts transactions={allTransactions} />
+      </div>
+
+      {/* Desna kolona: Tracker-i - Ostaje ista */}
+      <div className="lg:col-span-4 flex flex-col gap-8"> 
+        {/* Budžeti kartica */}
+        <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
+          <BudgetTracker 
+              budgets={budgets} 
+              expenses={expenses} 
+              onAddBudget={() => setIsBudgetModalOpen(true)}
+          />
+        </div>
+        
+        {/* Ciljevi kartica */}
+        <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
+          <SavingsGoals 
+              goals={goals} 
+              onAddGoal={() => setIsGoalModalOpen(true)} 
+              onUpdate={() => {
+                const storedId = localStorage.getItem('userId');
+                if (storedId) {
+                  loadAllData(storedId, userRole);
+                }
+              }}
+          />
+        </div>
+      </div>
+    </section>
 
         {userRole === 'ADMIN' && users.length > 0 && (
           <section className="bg-slate-900/40 border border-slate-800/50 p-8 md:p-10 rounded-[3rem] relative shadow-2xl backdrop-blur-md">
@@ -284,9 +620,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <section className="relative z-10">
-          <BudgetCharts transactions={allTransactions} />
-        </section>
+
 
         <section className="bg-slate-900/30 backdrop-blur-xl border border-slate-800/60 rounded-[3rem] overflow-hidden shadow-2xl relative z-10">
           <div className="p-8 md:p-10 border-b border-slate-800/50 space-y-8 bg-slate-900/20">
@@ -321,7 +655,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="p-4 md:p-8">
-            <TransactionTable transactions={filteredTransactions} onDelete={userRole !== 'GUEST' ? handleDeleteTransaction : undefined} />
+            <TransactionTable 
+              transactions={filteredTransactions} 
+              onDelete={userRole !== 'GUEST' ? handleDeleteTransaction : undefined}
+              onEdit={userRole !== 'GUEST' ? handleStartEditTransaction : undefined} 
+            />
           </div>
         </section>
 
@@ -333,17 +671,35 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="flex flex-wrap gap-4">
-            {categories.map((cat: any) => (
-              <div key={cat.id} className="flex items-center gap-3 bg-slate-900/50 border border-slate-800/50 px-5 py-3 rounded-2xl group hover:border-violet-500/30 transition-all">
-                <div className={`w-1 h-1 rounded-full ${cat.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                <span className="text-xs font-bold text-slate-300 group-hover:text-white">{cat.name}</span>
-                {cat.userId && userRole !== 'GUEST' && (
-                  <button onClick={() => deleteCategory(cat.id)} className="text-slate-700 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all ml-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                  </button>
-                )}
-              </div>
-            ))}
+      {categories.map((cat: any) => (
+        <div key={cat.id} className="flex items-center gap-3 bg-slate-900/50 border border-slate-800/50 px-5 py-3 rounded-2xl group hover:border-violet-500/30 transition-all">
+          {/* Tačkica za tip */}
+          <div className={`w-1 h-1 rounded-full ${cat.type === 'INCOME' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+          
+          {/* Naziv kategorije */}
+          <span className="text-xs font-bold text-slate-300 group-hover:text-white">{cat.name}</span>
+          
+          {userRole !== 'GUEST' && (
+            <div className="flex gap-2 ml-1">
+              {/* DUGME ZA IZMENU (Olovka) - Vidljivo samo na hover */}
+              <button 
+                onClick={() => handleStartEditCategory(cat)} 
+                className="text-slate-500 hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              </button>
+
+              {/* DUGME ZA BRISANJE (X)*/}
+              <button 
+                onClick={() => deleteCategory(cat.id)} 
+                className="text-slate-700 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
           </div>
         </section>
       </main>
@@ -357,8 +713,30 @@ export default function DashboardPage() {
       )}
 
       {/* MODALI */}
-      <CategoryModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} onSave={handleAddCategory} newCategory={newCategory} setNewCategory={setNewCategory} />
-      <TransactionModal isOpen={isModalOpen} mode={modalMode} formData={formData} setFormData={setFormData} onSave={handleSaveTransaction} onClose={() => setIsModalOpen(false)} categories={categories} />
+      <CategoryModal
+        isOpen={isCatModalOpen}
+        isEditing={Boolean(editingCategoryId)} 
+        onClose={() => {
+          setIsCatModalOpen(false);
+          setEditingCategoryId(null); // Resetuj ID kad zatvoriš
+        }}
+        onSave={handleSaveCategory}
+        newCategory={newCategory}
+        setNewCategory={setNewCategory}
+      />
+      <TransactionModal 
+        isOpen={isModalOpen} 
+        mode={modalMode} 
+        formData={formData} 
+        setFormData={setFormData} 
+        onSave={handleSaveTransaction} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTransactionId(null);
+          setFormData({ description: '', amount: '', categoryId: '' });
+        }} 
+        categories={categories} 
+      />
       
       <ConfirmModal 
         isOpen={modalConfig.isOpen}
@@ -366,6 +744,20 @@ export default function DashboardPage() {
         message={modalConfig.message}
         onConfirm={modalConfig.onConfirm}
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+      />
+
+      <BudgetModal 
+        isOpen={isBudgetModalOpen} 
+        categories={categories} 
+        onClose={() => setIsBudgetModalOpen(false)} 
+        onSave={handleSaveBudget} 
+      />
+
+      <GoalModal 
+        isOpen={isGoalModalOpen} 
+        onClose={() => setIsGoalModalOpen(false)} 
+        userId={currentUserId || ''} 
+        onSuccess={fetchGoals} 
       />
     </div>
   );
