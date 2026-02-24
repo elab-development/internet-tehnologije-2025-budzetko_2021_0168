@@ -27,8 +27,8 @@ export function GoalModal({ isOpen, onClose, userId, onSuccess }: GoalModalProps
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name,
-            targetAmount: parseFloat(target), // Osiguravamo broj
-            currentAmount: parseFloat(current || '0'), // Osiguravamo broj
+            targetAmount: parseFloat(target), 
+            currentAmount: parseFloat(current || '0'), 
             userId: userId 
           }),
         });

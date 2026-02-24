@@ -5,7 +5,7 @@ interface BadgesProps {
   badgesString: string; // Ovo dobijamo iz baze (npr. "PRVI_KORAK,BUDZET_MASTER")
 }
  
-// Mapiranje ključeva iz baze u lepe nazive i ikonice
+// Mapiranje ključeva iz baze 
 const badgeMap: Record<string, { label: string; icon: string; color: string }> = {
   PRVI_KORAK: { label: 'Prvi Korak', icon: '🛡️', color: 'bg-blue-500/20 text-blue-400 border-blue-500/50' },
   BUDZET_MASTER: { label: 'Budžet Master', icon: '💎', color: 'bg-purple-500/20 text-purple-400 border-purple-500/50' },

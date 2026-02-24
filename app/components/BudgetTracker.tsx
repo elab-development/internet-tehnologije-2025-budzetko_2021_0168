@@ -41,7 +41,6 @@ export function BudgetTracker({ budgets, expenses, onAddBudget }: BudgetTrackerP
 
   return (
     <div className="bg-slate-900/40 border border-slate-800/50 p-8 rounded-[3rem] backdrop-blur-md h-full shadow-2xl relative overflow-hidden group">
-      {/* Dekorativni sjaj u pozadini */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 blur-[50px] rounded-full pointer-events-none" />
 
       {/* HEADER KARTICE */}

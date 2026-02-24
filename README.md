@@ -3,7 +3,7 @@
 Aplikacija za upravljanje ličnim finansijama sa ulogama korisnika i vizuelizacijom podataka.
 
 ## Tehnologije
-* **Frontend:** Next.js 14 (App Router)
+* **Frontend:** Next.js 16.1.5 (App Router)
 * **Baza podataka:** MySQL sa Prisma ORM-om
 * **Dizajn:** Tailwind CSS
 * **Kontejnerizacija:** Docker & Docker Compose
@@ -39,7 +39,7 @@ Projekat je razvijan kroz sistem grana:
 
 ## API Dokumentacija
 API specifikacija (Swagger) je dostupna na:
-http://localhost:3000/docs
+http://localhost:3000/docs/index.html
 
 ## CI/CD Pipeline
 Automatizacija testiranja i build-a je podešena putem GitHub Actions (fajl se nalazi u .github/workflows).

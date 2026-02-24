@@ -29,7 +29,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Ako TypeScript pravi problem, možeš mu eksplicitno reći šta očekuješ
     const userId = body.userId;
     const categoryId = body.categoryId;
     const limit = body.limit;

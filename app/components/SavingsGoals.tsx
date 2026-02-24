@@ -14,12 +14,11 @@ interface SavingsGoalsProps {
 }
 
 export function SavingsGoals({ goals, onAddGoal, onUpdate }: SavingsGoalsProps) {
-  // Dodaj ovo unutar SavingsGoals komponente, iznad return-a
 const handleAddMoney = async (goalId: string, currentAmount: number, targetAmount: number) => {
       const userId = localStorage.getItem('userId');
       if (!userId) return;
 
-      const newAmount = currentAmount + 1000; // Dodajemo po 1000 RSD, možeš staviti koliko želiš
+      const newAmount = currentAmount + 1000; // Dodajemo po 1000 RSD
 
       try {
         const res = await fetch('/api/goals', {

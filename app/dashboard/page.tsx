@@ -206,7 +206,7 @@ useEffect(() => {
               },
             });
           }
-          // 3. NOVO - SCENARIO: POLOVINA BUDŽETA (Preko 50%)
+          // 3. SCENARIO: POLOVINA BUDŽETA (Preko 50%)
           else if (percent >= 50) {
             toast(`Na pola ste budžeta za ${budget.category?.name}.`, {
               icon: 'ℹ️',
@@ -265,7 +265,6 @@ useEffect(() => {
         if (res.ok) {
           toast.success('Uspešno obrisano!'); // Dodajemo potvrdu
 
-          // Koristimo dvostruku jednakost (==) ili konvertujemo oba u Number da bismo izbegli problem "12" !== 12
           if (type === 'INCOME') {
             setIncomes(prev => prev.filter(i => Number(i.id) !== Number(id)));
           } else {
@@ -345,7 +344,6 @@ const handleStartEditTransaction = (t: any) => {
     categoryId: (t.categoryId || t.category?.id || '').toString()
   });
 
-  // Postavi ID koji kaže "Ovo je edit, a ne novi unos"
   setEditingTransactionId(t.id);
   setIsModalOpen(true);
 };
@@ -368,8 +366,8 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         description: formData.description,
-        amount: parseFloat(formData.amount), // Mora biti Float/Number
-        categoryId: parseInt(formData.categoryId), // Mora biti Int/Number
+        amount: parseFloat(formData.amount),
+        categoryId: parseInt(formData.categoryId),
         userId: userId ? parseInt(userId) : null
       })
     });
@@ -415,7 +413,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     const userId = localStorage.getItem('userId');
     
-    // Ako imamo editingCategoryId, koristimo PATCH, inače POST
+    // Ako imamo editingCategoryId, koristimo PATCH
     const method = editingCategoryId ? 'PATCH' : 'POST';
     const endpoint = editingCategoryId 
       ? `/api/categories?id=${editingCategoryId}` 
@@ -470,10 +468,10 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
   };
 
  const handleUpdateGoal = async (goalId: number, newAmount: number) => {
-  // 1. PRVO DOHVATI userId (iz localStorage ili odakle ga već uzimaš u Dashboardu)
+  // 1. PRVO DOHVATI userId 
   const userId = localStorage.getItem('userId');
 
-  // 2. Proveri da li postoji da ne bi pukao kod
+  // 2. Proveri da li postoji
   if (!userId) {
     console.error("User ID nije pronađen!");
     return;
@@ -486,7 +484,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       body: JSON.stringify({ 
         id: goalId, 
         currentAmount: newAmount,
-        userId: userId // Sada više nije crveno jer je definisano iznad!
+        userId: userId 
       })
     });
 
@@ -494,7 +492,6 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
       toast.success("Napredak sačuvan! 💰");
       
       // Prosleđujemo userId i userRole tvojoj loadAllData funkciji
-      // Proveri samo da li je userRole dostupan (verovatno jeste na vrhu komponente)
       await loadAllData(userId, userRole); 
       router.refresh();
     }
@@ -550,15 +547,14 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
     
 
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 items-start"> 
-      {/* DODALI SMO: items-start (važno za sticky) */}
 
       {/* Leva kolona: Grafikoni - DODAJEMO STICKY KLASU */}
       <div className="lg:col-span-8 lg:sticky lg:top-24"> 
-        {/* top-24 je udaljenost od vrha ekrana, prilagodi ako imaš fiksni Navbar */}
+
         <BudgetCharts transactions={allTransactions} />
       </div>
 
-      {/* Desna kolona: Tracker-i - Ostaje ista */}
+      {/* Desna kolona: Tracker-i */}
       <div className="lg:col-span-4 flex flex-col gap-8"> 
         {/* Budžeti kartica */}
         <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] p-1 backdrop-blur-md shadow-xl">
@@ -718,7 +714,7 @@ const handleSaveTransaction = async (e: React.FormEvent) => {
         isEditing={Boolean(editingCategoryId)} 
         onClose={() => {
           setIsCatModalOpen(false);
-          setEditingCategoryId(null); // Resetuj ID kad zatvoriš
+          setEditingCategoryId(null);
         }}
         onSave={handleSaveCategory}
         newCategory={newCategory}
