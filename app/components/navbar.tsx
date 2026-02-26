@@ -14,10 +14,18 @@ export function Navbar({ userName, userRole }: NavbarProps) {
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push('/login');
-  };
+const handleLogout = async () => {
+  // 1. Opciono: Pozovi tvoju novu API rutu /api/logout (onu što smo napravili)
+  await fetch('/api/logout', { method: 'POST' });
+
+  // 2. KLJUČNO: Brišemo podatke koje tvoj Dashboard koristi u useEffect-u
+  localStorage.removeItem('userId');
+  localStorage.removeItem('userName');
+  localStorage.removeItem('userRole');
+
+  // 3. Preusmeravanje
+  router.push('/login');
+};
 
   return (
     <>

@@ -16,11 +16,66 @@
                     info: { title: "Budzetko API", version: "1.0.0" },
                     paths: {
                         "/api/expenses": {
-                            "get": { "summary": "Lista svih troškova", "responses": { "200": { "description": "OK" } } },
-                            "post": { "summary": "Dodaj novi trošak", "responses": { "201": { "description": "Kreirano" } } }
+                            "get": {
+                                "summary": "Lista svih troškova",
+                                "responses": { "200": { "description": "OK" } }
+                            },
+                            "post": {
+                                "summary": "Dodaj novi trošak",
+                                "requestBody": {
+                                    "required": true,
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/ExpenseRequest" }
+                                        }
+                                    }
+                                },
+                                "responses": { "201": { "description": "Kreirano" } }
+                            }
                         },
-                        "/api/auth/login": {
-                            "post": { "summary": "Logovanje", "responses": { "200": { "description": "Uspešno" } } }
+                        "/api/login": {
+                            "post": { 
+                                "summary": "Logovanje", 
+                                "requestBody": {
+                                    "required": true,
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "email": { "type": "string", "example": "user@example.com" },
+                                                    "password": { "type": "string", "example": "lozinka123" }
+                                                },
+                                                "required": ["email", "password"]
+                                            }
+                                        }
+                                    }
+                                },
+                                "responses": { "200": { "description": "Uspešno logovanje" } } 
+                            }
+                        }
+                    },
+                    components: {
+                        schemas: {
+                            LoginRequest: {
+                                type: "object",
+                                properties: {
+                                    email: { type: "string", example: "user@example.com" },
+                                    password: { type: "string", example: "123456" }
+                                },
+                                required: ["email", "password"]
+                            },
+                            ExpenseRequest: {
+                                type: "object",
+                                properties: {
+                                    title: { type: "string", example: "Kafa" }, 
+                                    description: { type: "string", example: "Jutarnja kafa" },
+                                    amount: { type: "number", example: 150 },
+                                    userId: { type: "number", example: 1 }, 
+                                    categoryId: { type: "number", example: 5 } 
+                                },
+                                required: ["description", "amount", "userId", "categoryId"]
+                            }
                         }
                     }
                 },

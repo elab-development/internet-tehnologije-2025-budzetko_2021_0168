@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
 useEffect(() => {
   const initDashboard = async () => {
-    const userId = localStorage.getItem('userId');
+    const userId = localStorage.getItem('userId');  //omogucava pristup samo autentifikovanim korisnicima
     const storedName = localStorage.getItem('userName');
     const storedRole = localStorage.getItem('userRole'); 
 

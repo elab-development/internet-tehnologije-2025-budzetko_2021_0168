@@ -2,7 +2,8 @@
 FROM node:20-slim
 
 # 2. Instaliramo OpenSSL koji je neophodan za Prismu
-RUN apt-get update && apt-get install -y openssl
+# RUN apt-get update && apt-get install -y openssl
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # 3. Postavljamo radni direktorijum
 WORKDIR /app

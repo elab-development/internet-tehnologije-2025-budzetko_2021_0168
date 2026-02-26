@@ -74,7 +74,7 @@ export function TransactionModal({ isOpen, onClose, mode, formData, setFormData,
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 autoFocus
-                required
+                
               />
             </div>
 
