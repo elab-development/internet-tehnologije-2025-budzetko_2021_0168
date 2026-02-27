@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('auth_user_id')?.value;
 
-    if (!userId) return NextResponse.json({ error: 'No User ID' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: 'Niste prijavljeni' }, { status: 401 });
+    }
 
     const budgets = await prisma.budget.findMany({
       where: { userId: parseInt(userId) },
@@ -16,7 +19,7 @@ export async function GET(req: Request) {
     const formattedBudgets = budgets.map((b) => ({
       ...b,
       categoryId: b.categoryId === null ? "TOTAL" : b.categoryId,
-      category: b.categoryId === null ? { name: "Ukupan Mesečni Limit" } : b.category
+      category: b.categoryId === null ? { name: "Ukupan mesečni limit" } : b.category
     }));
 
     return NextResponse.json(formattedBudgets);
@@ -27,25 +30,27 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const userIdFromCookie = cookieStore.get('auth_user_id')?.value;
     const body = await req.json();
     
     const userId = body.userId;
     const categoryId = body.categoryId;
     const limit = body.limit;
 
-    if (!userId) {
-      return NextResponse.json({ error: "UserId nedostaje" }, { status: 400 });
+    if (!userIdFromCookie) {
+      return NextResponse.json({ error: "Niste autorizovani" }, { status: 401 });
     }
 
     // Parsiranje podataka
-    const parsedUserId = parseInt(userId);
+    const parsedUserId = parseInt(userIdFromCookie);
     const parsedLimit = parseFloat(limit);
     const parsedCategoryId = categoryId === "TOTAL" ? null : parseInt(categoryId);
     
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
-    // 1. Provera postojećeg budžeta
+    // Provera postojećeg budžeta
     const existing = await prisma.budget.findFirst({
       where: {
         userId: parsedUserId,
@@ -73,7 +78,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2. LOGIKA ZA BEDŽ PLANER
+    // LOGIKA ZA BEDŽ PLANER
     const user = await prisma.user.findUnique({ 
       where: { id: parsedUserId } 
     });
@@ -93,6 +98,6 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Greška u bazi:", error);
-    return NextResponse.json({ error: 'Proveri konzolu, baza odbija upis.' }, { status: 500 });
+    return NextResponse.json({ error: 'Greška na serveru.' }, { status: 500 });
   }
 }

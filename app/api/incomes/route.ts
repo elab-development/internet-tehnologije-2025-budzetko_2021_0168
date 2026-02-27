@@ -1,67 +1,93 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { cookies } from 'next/headers';
+
+// Pomoćna funkcija za proveru sesije
+async function getAuthUserId() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth_user_id')?.value;
+  return userId ? parseInt(userId) : null;
+}
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
+  try {
+    // AUTENTIFIKACIJA: Čitamo ID iz kolačića
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: "Niste prijavljeni" }, { status: 401 });
 
-  if (!userId) {
-    return NextResponse.json({ error: "UserId is required" }, { status: 400 });
+    const incomes = await prisma.income.findMany({
+      where: { userId: userId },
+      include: { category: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(incomes);
+  } catch (error) {
+    return NextResponse.json({ error: "Greška pri učitavanju" }, { status: 500 });
   }
-
-  const incomes = await prisma.income.findMany({
-    where: { userId: parseInt(userId) },
-    include: { category: true }, // da bismo videli ime kategorije
-    orderBy: { createdAt: 'desc' }
-  });
-  return NextResponse.json(incomes);
 }
 
 export async function POST(req: Request) {
   try {
-    const { description, amount, userId, categoryId } = await req.json();
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: "Niste autorizovani" }, { status: 401 });
+
+    const { description, amount, categoryId } = await req.json();
 
     const newIncome = await prisma.income.create({
       data: {
         description,
         amount: parseFloat(amount),
-        user: { connect: { id: parseInt(userId) } },
-        category: { connect: { id: parseInt(categoryId) } }
+        userId: userId,
+        categoryId: parseInt(categoryId)
       }
     });
 
     return NextResponse.json(newIncome, { status: 201 });
   } catch (error) {
-    console.error("INCOME POST ERROR:", error);
     return NextResponse.json({ error: "Greška pri čuvanju prihoda!" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
+  try {
+    const userId = await getAuthUserId();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
 
-  if (!id) return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    if (!userId || !id) return NextResponse.json({ error: "Podaci nedostaju" }, { status: 401 });
 
-  await prisma.income.delete({
-    where: { id: parseInt(id) }
-  });
+    // Brišemo samo ako prihod pripada ulogovanom korisniku
+    const deleted = await prisma.income.deleteMany({
+      where: {
+        id: parseInt(id),
+        userId: userId
+      }
+    });
 
-  return NextResponse.json({ message: "Obrisano!" });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: "Nemate dozvolu ili prihod ne postoji" }, { status: 403 });
+    }
+
+    return NextResponse.json({ message: "Obrisano!" });
+  } catch (error) {
+    return NextResponse.json({ error: "Greška pri brisanju" }, { status: 500 });
+  }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const userId = await getAuthUserId();
+    const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-    const body = await request.json();
-    const { description, amount, categoryId } = body;
+    const { description, amount, categoryId } = await req.json();
 
-    if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
+    if (!userId || !id) return NextResponse.json({ error: "Niste autorizovani" }, { status: 401 });
 
-    const updated = await prisma.income.update({ 
+    // updateMany koristimo da bismo filtrirali po vlasniku
+    const updated = await prisma.income.updateMany({ 
       where: { 
-        id: parseInt(id) 
+        id: parseInt(id),
+        userId: userId
       },
       data: { 
         description, 
@@ -70,9 +96,12 @@ export async function PATCH(request: Request) {
       }
     });
 
-    return NextResponse.json(updated);
-  } catch (error: any) {
-    console.error("PRISMA ERROR:", error.message);
-    return NextResponse.json({ error: "Greška pri ažuriranju: " + error.message }, { status: 500 });
+    if (updated.count === 0) {
+      return NextResponse.json({ error: "Izmena nije dozvoljena" }, { status: 403 });
+    }
+
+    return NextResponse.json({ message: "Uspešno ažurirano" });
+  } catch (error) {
+    return NextResponse.json({ error: "Greška pri ažuriranju" }, { status: 500 });
   }
 }

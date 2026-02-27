@@ -1,14 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { cookies } from 'next/headers';
+
+// --- POMOĆNA FUNKCIJA ZA PROVERU AUTENTIFIKACIJE ---
+async function getAuthUserId() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth_user_id')?.value;
+  return userId ? parseInt(userId) : null;
+}
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
-
-  if (!userId) return NextResponse.json({ error: "UserId is required" }, { status: 400 });
+  const userId = await getAuthUserId();
+  if (!userId) return NextResponse.json({ error: "Niste prijavljeni" }, { status: 401 });
 
   const expenses = await prisma.expense.findMany({
-    where: { userId: parseInt(userId) },
+    where: { userId: userId },
     include: { category: true },
     orderBy: { createdAt: 'desc' }
   });
@@ -17,97 +23,85 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { description, amount, userId, categoryId } = await req.json();
- 
-    // Kreiramo trošak 
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: "Niste autorizovani" }, { status: 401 });
+
+    const { description, amount, categoryId } = await req.json();
+
+    // Kreiramo trošak koristeći provereni ID iz kolačića
     const newExpense = await prisma.expense.create({
       data: {
         description,
         amount: parseFloat(amount),
-        userId: parseInt(userId),
+        userId: userId,
         categoryId: parseInt(categoryId)
       }
     });
- 
-    // umotavamo u poseban try-catch da ne sruši čuvanje troška
+
+    // LOGIKA ZA BEDŽEVE (Sada potpuno sigurna)
     try {
-      const expenseCount = await prisma.expense.count({
-        where: { userId: parseInt(userId) }
-      });
- 
-      const user = await prisma.user.findUnique({
-        where: { id: parseInt(userId) }
-      });
- 
+      const expenseCount = await prisma.expense.count({ where: { userId } });
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
       if (user) {
-        // Uzimamo trenutne bedževe (ako su null, postaju prazan string)
         const currentBadges = (user as any).badges || "";
- 
-        // --- PROVERA ZA PRVI KORAK ---
+
+        // Bedž: PRVI_KORAK
         if (expenseCount >= 1 && !currentBadges.includes("PRVI_KORAK")) {
-          const updatedBadges = currentBadges ? `${currentBadges},PRVI_KORAK` : "PRVI_KORAK";
+          const updated = currentBadges ? `${currentBadges},PRVI_KORAK` : "PRVI_KORAK";
           await prisma.user.update({
-            where: { id: parseInt(userId) },
-            data: { badges: updatedBadges } as any
+            where: { id: userId },
+            data: { badges: updated } as any
           });
-          console.log("🎉 USPEH: Korisnik je dobio svoj prvi bedž: PRVI_KORAK");
         }
- 
-        // --- PROVERA ZA BUDŽET MASTER ---
-        const userBudgets = await prisma.budget.findMany({
-          where: { userId: parseInt(userId) }
-        });
- 
+
+        // Bedž: BUDZET_MASTER
+        const userBudgets = await prisma.budget.findMany({ where: { userId } });
         if (userBudgets.length >= 3 && !currentBadges.includes("BUDZET_MASTER")) {
           let isOverLimit = false;
           for (const budget of userBudgets) {
             const expensesInCategory = await prisma.expense.findMany({
-              where: { userId: parseInt(userId), categoryId: budget.categoryId || 0 }
+              where: { userId, categoryId: budget.categoryId || 0 }
             });
             const totalSpent = expensesInCategory.reduce((sum, exp) => sum + exp.amount, 0);
-            if (totalSpent > budget.limit) {
-              isOverLimit = true;
-              break;
-            }
+            if (totalSpent > budget.limit) { isOverLimit = true; break; }
           }
- 
+
           if (!isOverLimit) {
-            // Ponovo uzimamo najsvežije bedževe jer smo možda malopre dodali PRVI_KORAK
-            const freshUser = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+            const freshUser = await prisma.user.findUnique({ where: { id: userId } });
             const freshBadges = (freshUser as any).badges || "";
             const updated = freshBadges ? `${freshBadges},BUDZET_MASTER` : "BUDZET_MASTER";
-            
             await prisma.user.update({
-              where: { id: parseInt(userId) },
+              where: { id: userId },
               data: { badges: updated } as any
             });
-            console.log("🔥 NEVEROVATNO: Korisnik je BUDŽET MASTER!");
           }
         }
       }
     } catch (badgeError) {
-      console.error("Greška kod dodele bedža (ali trošak je sačuvan):", badgeError);
+      console.error("Greška kod bedževa:", badgeError);
     }
- 
+
     return NextResponse.json(newExpense, { status: 201 });
   } catch (error) {
-    console.error("Kritična greška u POST ruti:", error);
-    return NextResponse.json({ error: "Greška pri čuvanju troška" }, { status: 500 });
+    return NextResponse.json({ error: "Greška pri čuvanju" }, { status: 500 });
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const userId = await getAuthUserId();
+    const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-    const body = await request.json();
-    const { description, amount, categoryId } = body;
- 
-    if (!id) return NextResponse.json({ error: "ID nedostaje" }, { status: 400 });
- 
-    const updated = await prisma.expense.update({
-      where: {
-        id: parseInt(id)
+    const { description, amount, categoryId } = await req.json();
+
+    if (!userId || !id) return NextResponse.json({ error: "Neautorizovan pristup" }, { status: 401 });
+
+    // IDOR ZAŠTITA: updateMany dozvoljava filter po userId
+    const updated = await prisma.expense.updateMany({
+      where: { 
+        id: parseInt(id),
+        userId: userId 
       },
       data: {
         description,
@@ -115,36 +109,33 @@ export async function PATCH(request: Request) {
         categoryId: categoryId ? parseInt(categoryId) : undefined
       }
     });
- 
-    return NextResponse.json(updated);
-  } catch (error: any) {
-    console.error("PRISMA ERROR:", error.message);
-    return NextResponse.json({ error: "Greška pri ažuriranju: " + error.message }, { status: 500 });
+
+    if (updated.count === 0) return NextResponse.json({ error: "Pristup odbijen" }, { status: 403 });
+
+    return NextResponse.json({ message: "Ažurirano" });
+  } catch (error) {
+    return NextResponse.json({ error: "Greška na serveru" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
-  const userId = searchParams.get('userId'); // Primamo userId iz URL-a ili Body-ja
- 
-  if (!id || !userId) {
-    return NextResponse.json({ error: "ID i UserId su obavezni" }, { status: 400 });
-  }
- 
-  // ZAŠTITA: Brišemo samo ako se poklapaju ID troška i ID korisnika koji šalje zahtev
   try {
+    const userId = await getAuthUserId();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!userId || !id) return NextResponse.json({ error: "Neautorizovan pristup" }, { status: 401 });
+
+    // IDOR ZAŠTITA: Brišemo samo ako trošak pripada ulogovanom korisniku
     const deleted = await prisma.expense.deleteMany({ 
       where: { 
         id: parseInt(id),
-        userId: parseInt(userId) 
+        userId: userId 
       } 
     });
- 
-    if (deleted.count === 0) {
-      return NextResponse.json({ error: "Trošak nije pronađen ili nemate dozvolu" }, { status: 403 });
-    }
- 
+
+    if (deleted.count === 0) return NextResponse.json({ error: "Nemate dozvolu" }, { status: 403 });
+
     return NextResponse.json({ message: "Obrisano!" });
   } catch (error) {
     return NextResponse.json({ error: "Greška pri brisanju" }, { status: 500 });

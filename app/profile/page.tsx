@@ -35,6 +35,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setMessage({ text: 'Slanje podataka...', type: 'info' });
 
+    // Provera šifara na klijentu
     if (newPassword && newPassword !== confirmPassword) {
         setMessage({ text: 'Šifre se ne poklapaju!', type: 'error' });
         return;
@@ -45,7 +46,6 @@ export default function ProfilePage() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-              email: email,
               name: name,
               newPassword: newPassword || undefined,
           }),
@@ -54,16 +54,22 @@ export default function ProfilePage() {
         const result = await response.json();
 
         if (response.ok) {
+          // Ažuriramo lokalno ime da korisnik odmah vidi promenu
           localStorage.setItem('userName', name);
-          setMessage({ text: 'Podaci su trajno sačuvani u bazi!', type: 'success' });
+          setMessage({ text: result.message || 'Podaci su uspešno sačuvani!', type: 'success' });
+          
+          // Resetujemo polja za šifru
           setNewPassword('');
           setConfirmPassword('');
+          
+          // Preusmeravanje nakon 2 sekunde
           setTimeout(() => router.push('/dashboard'), 2000);
         } else {
           setMessage({ text: result.message || 'Došlo je do greške', type: 'error' });
         }
     } catch (error) {
-        setMessage({ text: 'Serverska greška. Proverite bazu.', type: 'error' });
+        console.error("Greška pri slanju:", error);
+        setMessage({ text: 'Problem sa povezivanjem. Proverite internet ili server.', type: 'error' });
     }
   };
 

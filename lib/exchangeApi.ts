@@ -8,6 +8,6 @@ export async function getExchangeRate(toCurrency: string = "EUR") {
     return data.rates[toCurrency];
   } catch (error) {
     console.error("Greška pri preuzimanju kursa:", error);
-    return 0.0085; //vrati fiksni približni kurs ako API padne
+    return null; 
   }
 }
